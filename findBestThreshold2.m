@@ -1,56 +1,44 @@
-function [bestT,bestFscore,splitIndex,nnIndices,nnLabels,distances,F1s,precisions,recall] = ...
-    findBestThreshold2(dp,subLen,queryLabel, bounds,boundLabels,...
-        baseTotalTP,cumulativeTP,cumulativeFP,weight)
-% Iteratively finds threshold in dp and picks best one based on F1 score
+function [bestT,bestFscore] = ...
+    findBestThreshold2(distanceProfile,subLen,queryLabel,regions,regionLabels,beta,...
+        estTotalTPs,cumulativeTPCount,cumulativeFPCount)
+% Iteratively finds threshold in dp and picks best one based on F score
 % Can weigh each prediction depending on length of query
-
-nnIndices = [];
-distances = [];
 nnLabels = [];
+nnIndices = [];
 precisions = [];
 tpCount = [];
+distances = [];
 
-% Once we finish finding all neighbors, we can finally compute the F1 score
+% Once we finish finding all neighbors, we can finally compute the Fscore
 % Keep track of precision until then
 
 % Discard self-match
-[val,ind] = min(dp);
+[val,ind] = min(distanceProfile);
 if val == 0
     % Bound checking
     bottomHalf = ind-floor(subLen/2);
     upperHalf = ind+floor(subLen/2);
     if bottomHalf < 0
         bottomHalf = 1;
-    elseif upperHalf > length(dp)
-        upperHalf = length(dp);
+    elseif upperHalf > length(distanceProfile)
+        upperHalf = length(distanceProfile);
     end
-    dp(ind:upperHalf) = inf;
-    dp(bottomHalf:ind) = inf;
+    distanceProfile(ind:upperHalf) = inf;
+    distanceProfile(bottomHalf:ind) = inf;
 end
 
 while(1)
-    [val,ind] = min(dp);
+    [val,ind] = min(distanceProfile);
     if (val ~= inf)
         nnIndices = [nnIndices; ind];
-        distances = [distances; val];
-        
-        for i=1:length(boundLabels)
-            label = -1;
-            if ind >= bounds(i,1) && ind <= bounds(i,2)
-                label = boundLabels(i);
-                break;
-            end
-        end
-        
-        label = labelNeighbors(ind,subLen,bounds,boundLabels);
-        
+        label = labelNeighbors(ind,subLen,regions,regionLabels);
         nnLabels = [nnLabels; label];
+        distances = [distances; val];
         numPredictions = length(nnIndices);
         
-        tp = (sum(nnLabels == queryLabel)) + cumulativeTP;
-        fp = (numPredictions - tp) + cumulativeFP;
-        
-        
+        tp = (sum(nnLabels == queryLabel)) + cumulativeTPCount;
+        fp = (numPredictions - tp) + cumulativeFPCount;
+
         tpCount = [tpCount; tp];
         p = tp / (tp + fp);
         precisions = [precisions; p];
@@ -60,29 +48,28 @@ while(1)
         upperHalf = ind+floor(subLen/2);
         if bottomHalf <= 0
             bottomHalf = 1;
-        elseif upperHalf > length(dp)
-            upperHalf = length(dp);
+        elseif upperHalf > length(distanceProfile)
+            upperHalf = length(distanceProfile);
         end
-        dp(ind:upperHalf) = inf;
-        dp(bottomHalf:ind) = inf;
+        distanceProfile(ind:upperHalf) = inf;
+        distanceProfile(bottomHalf:ind) = inf;
         
     else
         break;
     end
 end
 
-recall = tpCount ./ baseTotalTP;
+recall = tpCount ./ estTotalTPs;
 
-beta = 0.8;
-Fscore = F_betaScore(precisions,recall,beta);
+Fscores = F_betaScore(precisions,recall,beta);
 
-[bestFscore, ind] = max(Fscore);
-splitIndex = ind;
+[bestFscore, bestInd] = max(Fscores);
 
-if length(distances) == ind
-    bestT = distances(ind);
+% Edge case if the best threshold split is at the end...
+if length(distances) == bestInd
+    bestT = distances(bestInd);
 else
-    bestT = (distances(ind) + distances(ind+1)) / 2;
+    bestT = (distances(bestInd) + distances(bestInd+1)) / 2;
 end
 
 

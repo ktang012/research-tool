@@ -1,8 +1,9 @@
 function [dictTPIndices,dictFPIndices,predTPLengths,predFPLengths] = ...
-        getClassifiedNeighbors2(data,dataDict,bounds,boundLabels);
-% gets indices of correctly classified neighbors
+        getClassifiedNeighbors2(data,dataDict,regions,regionLabels);
+% gets indices of classified neighbors
 % and the corresponding lengths of those neighbors
 % using the data dictionary
+% 
 
 dictTPIndices = [];
 dictFPIndices = [];
@@ -21,7 +22,7 @@ for i=1:length(dataDict)
     entryNNIndices = findRangeNNs(dictDP,dataDict(i).length,dataDict(i).threshold);
     
     % label the neighbors according to boundaries ("actual" labels)
-    neighborLabels = labelNeighbors(entryNNIndices,dataDict(i).length,bounds,boundLabels);
+    neighborLabels = labelNeighbors(entryNNIndices,dataDict(i).length,regions,regionLabels);
     
     % group predictions
     entryTPIndices = entryNNIndices(neighborLabels == dataDict(i).label);

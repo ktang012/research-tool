@@ -1,7 +1,6 @@
 function [estTotalTPs] = estimateTotalTP(data,queryIndices,candidateData,queryLabel,bounds,boundLabels,startLen,stepLen,endLen)
 % Estimates the totalTP for each candidate at each length step
 % Sample of expected total TPs at each sublength
-% default_length/length_i = multiplier for a prediction
 totalTPs = [];
 if length(queryIndices) > 10
     k = 10;
