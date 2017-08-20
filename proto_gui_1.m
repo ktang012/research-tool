@@ -90,6 +90,13 @@ if fileName ~= 0
 
         % Plot the data
         cla(handles.graph_dictNeighbors,'reset');
+        white = [1 1 1];
+        for i=1:size(matFile.regions,1)
+            area(handles.graph_dictNeighbors,...
+                matFile.regions(i,:), [10 10], 'FaceColor', white, ...
+                'LineStyle', ':');
+            hold(handles.graph_dictNeighbors,'on');
+        end
         plot(handles.graph_dictNeighbors,handles.data);
 
         % Plot the region labels
@@ -116,44 +123,43 @@ function button_plotDictNeighbors_Callback(hObject, eventdata, handles)
 % hObject    handle to button_plotDictNeighbors (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-%% --- Executes on button press in button_learnNewDict.
-function button_learnNewDict_Callback(hObject, eventdata, handles)
-% hObject    handle to button_learnNewDict (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-inputHandles = guidata(hObject);
 if ~isfield(inputHandles,{'data','regions','regionLabels','startLength',...
         'stepLength','endLength','Fbeta','k','targetLabel'})
     errordlg('Need to input data and parameters before creating dictionary.');
     return;
-end
-
-data = inputHandles.data;
-regions = inputHandles.regions;
-regionLabels = inputHandles.regionLabels;
-startLength = inputHandles.startLength;
-stepLength = inputHandles.stepLength;
-endLength = inputHandles.endLength;
-Fbeta = inputHandles.Fbeta;
-k = inputHandles.k;
-targetLabel = inputHandles.targetLabel;
-
-if isempty(data) || isempty (regions) || isempty(regionLabels)
-    errordlg('Need to import data before creating dictionary.');
-elseif isempty(startLength) || isempty(stepLength) ...
-        || isempty(endLength) || isempty(Fbeta) || isempty(k)
-    errordlg('Need to input parameters before creating dictionary.');
+    
+elseif ~isfield(inputHandles,{'dataDict'})
+    errordlg('Need to have a dictionary before plotting.');
+    return
 else
+    data = inputHandles.data;
+    regions = inputHandles.regions;
+    regionLabels = inputHandles.regionLabels;
+    startLength = inputHandles.startLength;
+    stepLength = inputHandles.stepLength;
+    endLength = inputHandles.endLength;
+    Fbeta = inputHandles.Fbeta;
+    k = inputHandles.k;
+    targetLabel = inputHandles.targetLabel;
+    dataDict = inputHandles.dataDict;
     
-    [dataDict, Fscore] = learnDataDictionary(data,regions,regionLabels,...
-        targetLabel,startLength,stepLength,endLength,Fbeta,k);
+    % Need a function to estimate total TPs for a data set we did NOT learn
+    % a dictionary from. Just use shortest template as the truth?
+    % For now just ignore Fscore
+    % Should give precision instead
+    [nnIndices,~,~,~,indLengths] = evalDataDict(data,dataDict,Fbeta,...
+        regions,regionLabels,0);
     
-    
-    handles.dataDict = dataDict;
-    handles.Fscore = Fscore;
-    guidata(hObject,handles);
+    % Plot the data
+    cla(handles.graph_dictNeighbors,'reset');
+    white = [1 1 1];
+    for i=1:size(regions,1)
+        area(handles.graph_dictNeighbors,...
+            regions(i,:), [10 10], 'FaceColor', white, ...
+            'LineStyle', ':');
+        hold(handles.graph_dictNeighbors,'on');
+    end
+    plot(handles.graph_dictNeighbors,handles.data);
     
     % Plot neighbors
     cla(handles.graph_dictNeighbors,'reset');
@@ -176,17 +182,80 @@ else
         end
     end
     hold(handles.graph_dictNeighbors,'off');
+end
+
+
+%% --- Executes on button press in button_learnNewDict.
+function button_learnNewDict_Callback(hObject, eventdata, handles)
+% hObject    handle to button_learnNewDict (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+inputHandles = guidata(hObject);
+if ~isfield(inputHandles,{'data','regions','regionLabels','startLength',...
+        'stepLength','endLength','Fbeta','k','targetLabel'})
+    errordlg('Need to input data and parameters before creating dictionary.');
+else
+    data = inputHandles.data;
+    regions = inputHandles.regions;
+    regionLabels = inputHandles.regionLabels;
+    startLength = inputHandles.startLength;
+    stepLength = inputHandles.stepLength;
+    endLength = inputHandles.endLength;
+    Fbeta = inputHandles.Fbeta;
+    k = inputHandles.k;
+    targetLabel = inputHandles.targetLabel;
     
-    % Plot dictionary templates
-    cla(handles.graph_dictTemplates,'reset');
-    for i=1:length(dataDict)
-        plot(handles.graph_dictTemplates,...
-            [1:length(dataDict(i).template)],dataDict(i).template);
-        hold(handles.graph_dictTemplates,'on');
+    if isempty(data) || isempty (regions) || isempty(regionLabels)
+        errordlg('Need to import data before creating dictionary.');
+    elseif isempty(startLength) || isempty(stepLength) ...
+            || isempty(endLength) || isempty(Fbeta) || isempty(k)
+        errordlg('Need to input parameters before creating dictionary.');
+    else
+        [dataDict, Fscore] = learnDataDictionary(data,regions,regionLabels,...
+            targetLabel,startLength,stepLength,endLength,Fbeta,k);
+        
+        handles.dataDict = dataDict;
+        handles.Fscore = Fscore;
+        guidata(hObject,handles);
+        
+        % Plot neighbors
+        cla(handles.graph_dictNeighbors,'reset');
+        white = [1 1 1];
+        for i=1:size(regions,1)
+            area(handles.graph_dictNeighbors,...
+                regions(i,:), [10 10], 'FaceColor', white, ...
+                'LineStyle', ':');
+            hold(handles.graph_dictNeighbors,'on');
+        end
+        plot(handles.graph_dictNeighbors,data);
+        hold(handles.graph_dictNeighbors,'on');
+        for i=1:length(dataDict)
+            for j=1:length(dataDict(i).tpIndices)
+                plot(handles.graph_dictNeighbors,...
+                    dataDict(i).tpIndices(j):dataDict(i).tpIndices(j)+dataDict(i).length-1, ...
+                    data(dataDict(i).tpIndices(j):dataDict(i).tpIndices(j)+dataDict(i).length-1), ...
+                    'LineWidth', 3);
+                hold(handles.graph_dictNeighbors,'on');
+            end
+            for j=1:length(dataDict(i).fpIndices)
+                plot(handles.graph_dictNeighbors,...
+                    dataDict(i).fpIndices(j):dataDict(i).fpIndices(j)+dataDict(i).length-1, ...
+                    data(dataDict(i).fpIndices(j):dataDict(i).fpIndices(j)+dataDict(i).length-1), ...
+                    'LineWidth', 3);
+                hold(handles.graph_dictNeighbors,'on');
+            end
+        end
+        hold(handles.graph_dictNeighbors,'off');
+        
+        % Plot dictionary templates
+        cla(handles.graph_dictTemplates,'reset');
+        for i=1:length(dataDict)
+            plot(handles.graph_dictTemplates,...
+                [1:length(dataDict(i).template)],dataDict(i).template);
+            hold(handles.graph_dictTemplates,'on');
+        end
+        hold(handles.graph_dictTemplates,'off');
     end
-    hold(handles.graph_dictTemplates,'off');
-    
-    disp('DONE LEARNING');
 end
 
 
@@ -206,6 +275,13 @@ if fileName ~= 0
        % Reload graph_dictNeighbors to get rid of highlighted neighbors
        if ~isempty(handles.graph_dictNeighbors)
            cla(handles.graph_dictNeighbors,'reset');
+           white = [1 1 1];
+           for i=1:size(regions,1)
+               area(handles.graph_dictNeighbors,...
+                   regions(i,:), [10 10], 'FaceColor', white, ...
+                   'LineStyle', ':');
+               hold(handles.graph_dictNeighbors,'on');
+           end
            plot(handles.graph_dictNeighbors,handles.data);
        end
        
@@ -214,10 +290,11 @@ if fileName ~= 0
        for i=1:length(handles.dataDict)
            plot(handles.graph_dictTemplates,...
                [1:length(handles.dataDict(i).template)],handles.dataDict(i).template);
-           hold on;
+           hold(handles.graph_dictTemplates,'on');
        end
+       hold(handles.graph_dictTemplates,'off');
    else
-       errordlg('Dictionary has fields "template","length", and "threshold."');
+       errordlg('Dictionary needs fields "template","length", and "threshold."');
    end
     
 end
@@ -231,7 +308,7 @@ function button_exportDict_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if ~isempty(handles.dataDict)
-    filename = uiputfile('.mat','Save dictionary name.');
+    filename = uiputfile('.mat','Save dictionary.');
     if ~isempty(filename)
         save(filename,handles.dataDict);
     else
