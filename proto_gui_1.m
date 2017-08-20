@@ -22,7 +22,7 @@ function varargout = proto_gui_1(varargin)
 
 % Edit the above text to modify the response to help proto_gui_1
 
-% Last Modified by GUIDE v2.5 18-Aug-2017 21:00:01
+% Last Modified by GUIDE v2.5 19-Aug-2017 21:11:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -503,3 +503,60 @@ function input_targetLabel_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on selection change in listbox_dictTemplates.
+function listbox_dictTemplates_Callback(hObject, eventdata, handles)
+% hObject    handle to listbox_dictTemplates (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns listbox_dictTemplates contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from listbox_dictTemplates
+
+
+% --- Executes during object creation, after setting all properties.
+function listbox_dictTemplates_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to listbox_dictTemplates (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: listbox controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in checkbox_displayCorrectNeighbors.
+function checkbox_displayCorrectNeighbors_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_displayCorrectNeighbors (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_displayCorrectNeighbors
+
+
+% --- Executes on button press in checkbox_displayIncorrectNeighbors.
+function checkbox_displayIncorrectNeighbors_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_displayIncorrectNeighbors (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_displayIncorrectNeighbors
+
+
+% --- Executes on button press in checkbox_evalTemplatesInOrder.
+function checkbox_evalTemplatesInOrder_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_evalTemplatesInOrder (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_evalTemplatesInOrder
+
+
+% --- Executes on button press in button_evalTemplate.
+function button_evalTemplate_Callback(hObject, eventdata, handles)
+% hObject    handle to button_evalTemplate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
