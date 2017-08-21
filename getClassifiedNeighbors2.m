@@ -1,14 +1,23 @@
-function [dictTPIndices,dictFPIndices,predTPLengths,predFPLengths] = ...
+function [dictTPIndices,dictFPIndices,...
+    predTPLengths,predFPLengths,...
+    orgTPIndices,orgFPIndices] = ...
         getClassifiedNeighbors2(data,dataDict,regions,regionLabels);
 % gets indices of classified neighbors
 % and the corresponding lengths of those neighbors
 % using the data dictionary
 % 
 
+% Indices of neighbors in data
 dictTPIndices = [];
 dictFPIndices = [];
+
+% Lengths of neighbors
 predTPLengths = [];
 predFPLengths = [];
+
+% organized into rows per entry
+orgTPIndices = {};
+orgFPIndices = {};
 
 for i=1:length(dataDict)
     dictDP = findNN(data,smooth(dataDict(i).query));
@@ -27,6 +36,9 @@ for i=1:length(dataDict)
     % group predictions
     entryTPIndices = entryNNIndices(neighborLabels == dataDict(i).label);
     entryFPIndices = entryNNIndices(neighborLabels ~= dataDict(i).label);
+    orgTPIndices{i} = entryTPIndices;
+    orgFPIndices{i} = entryFPIndices;
+    
     
     predTPLength = ones(length(entryTPIndices),1) * dataDict(i).length; 
     predTPLengths = [predTPLengths; predTPLength];

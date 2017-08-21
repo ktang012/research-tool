@@ -86,6 +86,7 @@ if fileName ~= 0
         handles.data = matFile.data;
         handles.regions = matFile.regions;
         handles.regionLabels = matFile.regionLabels;
+        % save handles
         guidata(hObject,handles);
 
         % Plot the data
@@ -123,8 +124,9 @@ function button_plotDictNeighbors_Callback(hObject, eventdata, handles)
 % hObject    handle to button_plotDictNeighbors (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if ~isfield(inputHandles,{'data','regions','regionLabels','startLength',...
-        'stepLength','endLength','Fbeta','k','targetLabel'})
+inputHandles = guidata(hObject);
+if ~all(isfield(inputHandles,{'data','regions','regionLabels','startLength',...
+        'stepLength','endLength','Fbeta','k','targetLabel'}))
     errordlg('Need to input data and parameters before creating dictionary.');
     return;
     
@@ -143,13 +145,6 @@ else
     targetLabel = inputHandles.targetLabel;
     dataDict = inputHandles.dataDict;
     
-    % Need a function to estimate total TPs for a data set we did NOT learn
-    % a dictionary from. Just use shortest template as the truth?
-    % For now just ignore Fscore
-    % Should give precision instead
-    [nnIndices,~,~,~,indLengths] = evalDataDict(data,dataDict,Fbeta,...
-        regions,regionLabels,0);
-    
     % Plot the data
     cla(handles.graph_dictNeighbors,'reset');
     white = [1 1 1];
@@ -160,25 +155,55 @@ else
         hold(handles.graph_dictNeighbors,'on');
     end
     plot(handles.graph_dictNeighbors,handles.data);
-    
-    % Plot neighbors
-    cla(handles.graph_dictNeighbors,'reset');
-    plot(handles.graph_dictNeighbors,data);
     hold(handles.graph_dictNeighbors,'on');
-    for i=1:length(dataDict)
-        for j=1:length(dataDict(i).tpIndices)
-            plot(handles.graph_dictNeighbors,...
-                dataDict(i).tpIndices(j):dataDict(i).tpIndices(j)+dataDict(i).length-1, ...
-                data(dataDict(i).tpIndices(j):dataDict(i).tpIndices(j)+dataDict(i).length-1), ...
-                'LineWidth', 3);
-            hold(handles.graph_dictNeighbors,'on');
+    
+    % ALSO NEED TO CHECK WHICH TEMPLATE IS BEING USED!!
+    % if in order evaluation is checked
+    if get(handles.checkbox_evalTemplatesInOrder,'Value') ~= 0
+        for i=1:length(dataDict)
+            for j=1:length(dataDict(i).tpIndices)
+                % if displaying correct neighbors
+                if get(handles.checkbox_displayCorrectNeighbors,'Value') ~= 0
+                    plot(handles.graph_dictNeighbors,...
+                        dataDict(i).tpIndices(j):dataDict(i).tpIndices(j)+dataDict(i).length-1, ...
+                        data(dataDict(i).tpIndices(j):dataDict(i).tpIndices(j)+dataDict(i).length-1), ...
+                        'LineWidth', 3);
+                    hold(handles.graph_dictNeighbors,'on');
+                end
+            end
+            for j=1:length(dataDict(i).fpIndices)
+                % if displaying incorrect neighbors
+                if get(handles.checkbox_displayIncorrectNeighbors,'Value') ~= 0
+                    plot(handles.graph_dictNeighbors,...
+                        dataDict(i).fpIndices(j):dataDict(i).fpIndices(j)+dataDict(i).length-1, ...
+                        data(dataDict(i).fpIndices(j):dataDict(i).fpIndices(j)+dataDict(i).length-1), ...
+                        'LineWidth', 3);
+                    hold(handles.graph_dictNeighbors,'on');
+                end
+            end
         end
-        for j=1:length(dataDict(i).fpIndices)
-            plot(handles.graph_dictNeighbors,...
-                dataDict(i).fpIndices(j):dataDict(i).fpIndices(j)+dataDict(i).length-1, ...
-                data(dataDict(i).fpIndices(j):dataDict(i).fpIndices(j)+dataDict(i).length-1), ...
-                'LineWidth', 3);
-            hold(handles.graph_dictNeighbors,'on');
+    else
+        for i=1:length(dataDict)
+            for j=1:length(dataDict(i).unorderTPIndices)
+                % if displaying correct neighbors
+                if get(handles.checkbox_displayCorrectNeighbors,'Value') ~= 0
+                    plot(handles.graph_dictNeighbors,...
+                        dataDict(i).unorderTPIndices(j):dataDict(i).unorderTPIndices(j)+dataDict(i).length-1, ...
+                        data(dataDict(i).unorderTPIndices(j):dataDict(i).unorderTPIndices(j)+dataDict(i).length-1), ...
+                        'LineWidth', 3);
+                    hold(handles.graph_dictNeighbors,'on');
+                end
+            end
+            for j=1:length(dataDict(i).fpIndices)
+                % if displaying incorrect neighbors
+                if get(handles.checkbox_displayIncorrectNeighbors,'Value') ~= 0
+                    plot(handles.graph_dictNeighbors,...
+                        dataDict(i).unorderFPIndices(j):dataDict(i).unorderFPIndices(j)+dataDict(i).length-1, ...
+                        data(dataDict(i).unorderFPIndices(j):dataDict(i).unorderFPIndices(j)+dataDict(i).length-1), ...
+                        'LineWidth', 3);
+                    hold(handles.graph_dictNeighbors,'on');
+                end
+            end
         end
     end
     hold(handles.graph_dictNeighbors,'off');
@@ -190,10 +215,14 @@ function button_learnNewDict_Callback(hObject, eventdata, handles)
 % hObject    handle to button_learnNewDict (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% Load guidata as inputHandles
 inputHandles = guidata(hObject);
-if ~isfield(inputHandles,{'data','regions','regionLabels','startLength',...
-        'stepLength','endLength','Fbeta','k','targetLabel'})
+
+if ~all(isfield(inputHandles,{'data','regions','regionLabels','startLength',...
+        'stepLength','endLength','Fbeta','k','targetLabel'}))
     errordlg('Need to input data and parameters before creating dictionary.');
+    return;
 else
     data = inputHandles.data;
     regions = inputHandles.regions;
@@ -207,18 +236,28 @@ else
     
     if isempty(data) || isempty (regions) || isempty(regionLabels)
         errordlg('Need to import data before creating dictionary.');
+        return;
     elseif isempty(startLength) || isempty(stepLength) ...
             || isempty(endLength) || isempty(Fbeta) || isempty(k)
         errordlg('Need to input parameters before creating dictionary.');
+        return;
     else
         [dataDict, Fscore] = learnDataDictionary(data,regions,regionLabels,...
             targetLabel,startLength,stepLength,endLength,Fbeta,k);
+        
+        % Save unorder TP,FP for each entry
+        for i=1:length(dataDict)
+            [unorderTPIndices,unorderFPIndices] = ...
+                getClassifiedNeighbors2(data,dataDict(i),regions,regionLabels);
+            dataDict(i).unorderTPIndices = unorderTPIndices;
+            dataDict(i).unorderFPIndices = unorderFPIndices;
+        end
         
         handles.dataDict = dataDict;
         handles.Fscore = Fscore;
         guidata(hObject,handles);
         
-        % Plot neighbors
+        % Plot neighbors -- NOTE: NEED TO DO IT ACCORDING TO CHECKBOXES
         cla(handles.graph_dictNeighbors,'reset');
         white = [1 1 1];
         for i=1:size(regions,1)
@@ -270,20 +309,48 @@ fileName = uigetfile('.mat');
 if fileName ~= 0
    matFile = load(fileName);
    if isfield(matFile, {'template','length','threshold'})
-       handles.dataDict = matFile;
+       dataDict = matFile;
        
-       % Reload graph_dictNeighbors to get rid of highlighted neighbors
-       if ~isempty(handles.graph_dictNeighbors)
+       % Clear highlighted neighbors if applicable
+       inputHandles = guidata(hObject);
+       if all(isfield(inputHandles,{'data','regions'}))
            cla(handles.graph_dictNeighbors,'reset');
            white = [1 1 1];
-           for i=1:size(regions,1)
+           for i=1:size(inputHandles.regions,1)
                area(handles.graph_dictNeighbors,...
-                   regions(i,:), [10 10], 'FaceColor', white, ...
+                   inputHandles.regions(i,:), [10 10], 'FaceColor', white, ...
                    'LineStyle', ':');
                hold(handles.graph_dictNeighbors,'on');
            end
-           plot(handles.graph_dictNeighbors,handles.data);
+           plot(handles.graph_dictNeighbors,handles.data); 
        end
+       
+       % fill in indices if there is data else empty indices
+       inputHandles = guidata(hObject);
+       if all(isfield(inputHandles,{'data','regions','regionLabels'}))
+           data = inputHandles.data;
+           regions = inputHandles.regions;
+           regionLabels = inputHandles.regionLabels;
+           [~,~,~,~,sortedTPIndices,sortedFPIndices] = ...
+               getClassifiedNeighbors2(data,dataDict,regions,regionLabels);
+           for i=1:length(dataDict)
+               dataDict(i).tpIndices = sortedTPIndices{i};
+               dataDict(i).fpIndices = sortedFPIndices{i};
+               [unorderTPIndices,unorderFPIndices] = ...
+                   getClassifiedNeighbors2(data,dataDict(i),regions,regionLabels);
+               dataDict(i).unorderTPIndices = unorderTPIndices;
+               dataDict(i).unorderFPIndices = unorderFPIndices;
+           end
+       else
+           for i=1:length(dataDict)
+               dataDict(i).tpIndices = [];
+               dataDict(i).fpIndices = [];
+               dataDict(i).unorderTPIndices = [];
+               dataDict(i).unorderFPIndices = [];
+           end
+       end
+       handles.dataDict = dataDict;
+       guidata(hObject,handles);
        
        % Plot dictionary templates
        cla(handles.graph_dictTemplates,'reset');
@@ -307,13 +374,23 @@ function button_exportDict_Callback(hObject, eventdata, handles)
 % hObject    handle to button_exportDict (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if ~isempty(handles.dataDict)
-    filename = uiputfile('.mat','Save dictionary.');
+inputHandles = guidata(hObject);
+if isfield(inputHandles,'dataDict')
+    filename = uiputfile('.mat','Save current dictionary.');
     if ~isempty(filename)
-        save(filename,handles.dataDict);
+        % clear indices before saving
+        for i=1:length(inputHandles.dataDict)
+            inputHandles.dataDict(i).tpIndices = [];
+            inputHandles.dataDict(i).fpIndices = [];
+            inputHandles.dataDict(i).unorderTPIndices = [];
+            inputHandles.dataDict(i).unorderFPIndices = [];
+        end
+        save(filename,inputHandles.dataDict);
     else
-        errordlg('Invalid dictionary name'); 
+        errordlg('Invalid dictionary name.');
     end
+else
+    errordlg('Could not find dictionary to save');
 end
 
 
@@ -513,6 +590,31 @@ function listbox_dictTemplates_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox_dictTemplates contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox_dictTemplates
+
+% Find index of item selected, plot the template depending on the index
+% Note: if selectedIndex == 1, then display all templates
+% The function should also display the template's corresponding TP and FP
+% depending on the TP/FP checkboxes AND the in order checkbox
+% Each entry should have (for a particular data set) a list of in order TPs
+% and FPs and a list of non in order TPs and FPs
+% The checkboxes should also extend the the button/graph plotDictNeighbors
+selectedIndex = get(hObject,'Value');
+handles.selectedIndex = selectedIndex;
+guidata(hObject,handles);
+
+% if selectedIndex > 1
+% plot template bolded in dictTemplates
+% if in order checked
+% --- if tp checked -- plot tp_in_order in dictTemplates and dictNeighbors
+% --- if fp checked -- plot fp_in_order in dictTemplates and dictNeighbors
+% --- 
+% else
+% --- if tp checked -- plot tp in dictTemplates and dictNeighbors
+% --- if fp checked -- plot fp in dictTemplates and dictNeighbors
+% else
+% plot all templates
+
+
 
 
 % --- Executes during object creation, after setting all properties.
