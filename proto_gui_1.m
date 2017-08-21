@@ -125,8 +125,7 @@ function button_plotDictNeighbors_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 inputHandles = guidata(hObject);
-if ~all(isfield(inputHandles,{'data','regions','regionLabels','startLength',...
-        'stepLength','endLength','Fbeta','k','targetLabel'}))
+if ~all(isfield(inputHandles,{'data','regions'}))
     errordlg('Need to input data and parameters before creating dictionary.');
     return;
     
@@ -136,13 +135,6 @@ elseif ~isfield(inputHandles,{'dataDict'})
 else
     data = inputHandles.data;
     regions = inputHandles.regions;
-    regionLabels = inputHandles.regionLabels;
-    startLength = inputHandles.startLength;
-    stepLength = inputHandles.stepLength;
-    endLength = inputHandles.endLength;
-    Fbeta = inputHandles.Fbeta;
-    k = inputHandles.k;
-    targetLabel = inputHandles.targetLabel;
     dataDict = inputHandles.dataDict;
     
     % Plot the data
@@ -157,52 +149,33 @@ else
     plot(handles.graph_dictNeighbors,handles.data);
     hold(handles.graph_dictNeighbors,'on');
     
-    % ALSO NEED TO CHECK WHICH TEMPLATE IS BEING USED!!
+    % ALSO NEED TO CHECK WHICH TEMPLATE IS BEING USED IN CHECKLIST
+    
     % if in order evaluation is checked
     if get(handles.checkbox_evalTemplatesInOrder,'Value') ~= 0
         for i=1:length(dataDict)
-            for j=1:length(dataDict(i).tpIndices)
-                % if displaying correct neighbors
-                if get(handles.checkbox_displayCorrectNeighbors,'Value') ~= 0
-                    plot(handles.graph_dictNeighbors,...
-                        dataDict(i).tpIndices(j):dataDict(i).tpIndices(j)+dataDict(i).length-1, ...
-                        data(dataDict(i).tpIndices(j):dataDict(i).tpIndices(j)+dataDict(i).length-1), ...
-                        'LineWidth', 3);
-                    hold(handles.graph_dictNeighbors,'on');
-                end
+            if get(handles.checkbox_displayCorrectNeighbors,'Value') ~= 0
+                plotNeighbors(handles.graph_dictNeighbors,data,...
+                    dataDict(i).tpIndices,dataDict(i).length);
+                hold(handles.graph_dictNeighbors,'on');
             end
-            for j=1:length(dataDict(i).fpIndices)
-                % if displaying incorrect neighbors
-                if get(handles.checkbox_displayIncorrectNeighbors,'Value') ~= 0
-                    plot(handles.graph_dictNeighbors,...
-                        dataDict(i).fpIndices(j):dataDict(i).fpIndices(j)+dataDict(i).length-1, ...
-                        data(dataDict(i).fpIndices(j):dataDict(i).fpIndices(j)+dataDict(i).length-1), ...
-                        'LineWidth', 3);
-                    hold(handles.graph_dictNeighbors,'on');
-                end
+            if get(handles.checkbox_displayIncorrectNeighbors,'Value') ~= 0
+                plotNeighbors(handles.graph_dictNeighbors,data,...
+                    dataDict(i).fpIndices,dataDict(i).length);
+                hold(handles.graph_dictNeighbors,'on');
             end
         end
     else
         for i=1:length(dataDict)
-            for j=1:length(dataDict(i).unorderTPIndices)
-                % if displaying correct neighbors
-                if get(handles.checkbox_displayCorrectNeighbors,'Value') ~= 0
-                    plot(handles.graph_dictNeighbors,...
-                        dataDict(i).unorderTPIndices(j):dataDict(i).unorderTPIndices(j)+dataDict(i).length-1, ...
-                        data(dataDict(i).unorderTPIndices(j):dataDict(i).unorderTPIndices(j)+dataDict(i).length-1), ...
-                        'LineWidth', 3);
-                    hold(handles.graph_dictNeighbors,'on');
-                end
+            if get(handles.checkbox_displayCorrectNeighbors,'Value') ~= 0
+                plotNeighbors(handles.graph_dictNeighbors,data,...
+                    dataDict(i).unorderTPIndices,dataDict(i).length);
+                hold(handles.graph_dictNeighbors,'on');
             end
-            for j=1:length(dataDict(i).fpIndices)
-                % if displaying incorrect neighbors
-                if get(handles.checkbox_displayIncorrectNeighbors,'Value') ~= 0
-                    plot(handles.graph_dictNeighbors,...
-                        dataDict(i).unorderFPIndices(j):dataDict(i).unorderFPIndices(j)+dataDict(i).length-1, ...
-                        data(dataDict(i).unorderFPIndices(j):dataDict(i).unorderFPIndices(j)+dataDict(i).length-1), ...
-                        'LineWidth', 3);
-                    hold(handles.graph_dictNeighbors,'on');
-                end
+            if get(handles.checkbox_displayIncorrectNeighbors,'Value') ~= 0
+                plotNeighbors(handles.graph_dictNeighbors,data,...
+                    dataDict(i).unorderFPIndices,dataDict(i).length);
+                hold(handles.graph_dictNeighbors,'on');
             end
         end
     end
@@ -258,6 +231,7 @@ else
         guidata(hObject,handles);
         
         % Plot neighbors -- NOTE: NEED TO DO IT ACCORDING TO CHECKBOXES
+        % SHOULD ALSO DEFAULT CHECKLIST TO "ALL"
         cla(handles.graph_dictNeighbors,'reset');
         white = [1 1 1];
         for i=1:size(regions,1)
@@ -269,20 +243,12 @@ else
         plot(handles.graph_dictNeighbors,data);
         hold(handles.graph_dictNeighbors,'on');
         for i=1:length(dataDict)
-            for j=1:length(dataDict(i).tpIndices)
-                plot(handles.graph_dictNeighbors,...
-                    dataDict(i).tpIndices(j):dataDict(i).tpIndices(j)+dataDict(i).length-1, ...
-                    data(dataDict(i).tpIndices(j):dataDict(i).tpIndices(j)+dataDict(i).length-1), ...
-                    'LineWidth', 3);
-                hold(handles.graph_dictNeighbors,'on');
-            end
-            for j=1:length(dataDict(i).fpIndices)
-                plot(handles.graph_dictNeighbors,...
-                    dataDict(i).fpIndices(j):dataDict(i).fpIndices(j)+dataDict(i).length-1, ...
-                    data(dataDict(i).fpIndices(j):dataDict(i).fpIndices(j)+dataDict(i).length-1), ...
-                    'LineWidth', 3);
-                hold(handles.graph_dictNeighbors,'on');
-            end
+            plotNeighbors(handles.graph_dictNeighbors,data,...
+                dataDict(i).tpIndices,dataDict(i).length);
+            hold(handles.graph_dictNeighbors,'on');
+            plotNeighbors(handles.graph_dictNeighbors,data,...
+                dataDict(i).fpIndices,dataDict(i).length);
+            hold(handles.graph_dictNeighbors,'on');
         end
         hold(handles.graph_dictNeighbors,'off');
         
