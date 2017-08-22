@@ -139,6 +139,7 @@ elseif ~isfield(inputHandles,{'dataDict'})
 else
     data = inputHandles.data;
     regions = inputHandles.regions;
+    regionLabels = inputHandles.regionLabels;
     
     dataDict = inputHandles.dataDict;
     if ~assertDictFields(dataDict)
@@ -146,7 +147,7 @@ else
         return;
     end;
     
-    selectedTemplateIndex = inputHandles.dataDict;
+    selectedTemplateIndex = inputHandles.selectedTemplateIndex;
     refreshDictNeighbors = inputHandles.refreshDictNeighbors;
     
     % Plot the data
@@ -183,9 +184,11 @@ else
     flags(3) = get(handles.checkbox_displayIncorrectNeighbors,'Value');
     if selectedTemplateIndex == 1
         plotDictNeighbors(handles.graph_dictNeighbors,flags,data,dataDict);
+        hold(handles.graph_dictNeighbors,'off');
     elseif selectedTemplateIndex > 1 && selectedTemplateIndex <= length(dataDict) + 1
         plotDictNeighbors(handles.graph_dictNeighbors,flags,data,...
             dataDict(selectedTemplateIndex-1));
+        hold(handles.graph_dictNeighbors,'off');
     else
        errordlg('Error with graph_dictNeighbors: selectedTemplateIndex.'); 
     end
@@ -274,9 +277,12 @@ function button_importDict_Callback(hObject, eventdata, handles)
 fileName = uigetfile('.mat');
 if fileName ~= 0
    matFile = load(fileName);
-   if assertDictFields(matFile);
-       dataDict = matFile;
-       
+   if isfield(matFile,'dataDict')
+       dataDict = matFile.dataDict;
+   else
+       dataDict = [];
+   end
+   if assertDictFields(dataDict);
        % Clear highlighted neighbors if applicable
        inputHandles = guidata(hObject);
        if all(isfield(inputHandles,{'data','regions'}))
@@ -349,6 +355,7 @@ if isfield(inputHandles,'dataDict')
         return;
     end
     filename = uiputfile('.mat','Save current dictionary.');
+    disp(filename);
     if ~isempty(filename)
         % clear indices before saving
         for i=1:length(inputHandles.dataDict)
@@ -357,7 +364,8 @@ if isfield(inputHandles,'dataDict')
             inputHandles.dataDict(i).unorderTPIndices = [];
             inputHandles.dataDict(i).unorderFPIndices = [];
         end
-        save(filename,inputHandles.dataDict);
+        dataDict = inputHandles.dataDict;
+        save(filename,'dataDict');
     else
         errordlg('Invalid dictionary name.');
     end
@@ -643,7 +651,7 @@ function button_plotTemplate_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % Need to implement close in view of a template vs TPs/FPs
 inputHandles = guidata(hObject);
-if inputHandles.selectedTemplateIndex == 1 && isfield(inputHandles,'dataDict') && ...
+if inputHandles.selectedTemplateIndex == 1 & isfield(inputHandles,'dataDict') & ...
         assertDictFields(inputHandles.dataDict)
     plotDictTemplates(handles.graph_dictTemplates,inputHandles.dataDict);
     hold(handles.graph_dictTemplates,'off');
@@ -680,6 +688,7 @@ elseif inputHandles.selectedTemplateIndex > 1 && all(isfield(inputHandles,{'data
     flags(3) = get(handles.checkbox_displayIncorrectNeighbors,'Value');
     plotTemplateNeighbors(handles.graph_dictTemplates,flags,data,...
         dataDict(selectedTemplateIndex-1),displayNumNeighbors);
+    hold(handles.graph_dictTemplates,'off');
 else
     errordlg('Error with graphing templates.');
 end
