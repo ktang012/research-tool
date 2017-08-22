@@ -93,6 +93,7 @@ if fileName ~= 0
         handles.regions = matFile.regions;
         handles.regionLabels = matFile.regionLabels;
         handles.refreshDictNeighbors = 1;
+        set(handles.staticText_data,'String','Data (NOT up to date with dictionary)');
         % save handles
         guidata(hObject,handles);
 
@@ -135,7 +136,13 @@ elseif ~isfield(inputHandles,{'dataDict'})
 else
     data = inputHandles.data;
     regions = inputHandles.regions;
+    
     dataDict = inputHandles.dataDict;
+    if ~assertDictFields(dataDict)
+        errordlg('Error with dictionary fields.');
+        return;
+    end;
+    
     selectedTemplateIndex = inputHandles.dataDict;
     refreshDictNeighbors = inputHandles.refreshDictNeighbors;
     
@@ -163,6 +170,7 @@ else
         refreshDictNeighbors = 0;
         handles.refreshDictNeighbors = refreshDictNeighbors;
         guidata(hObject,handles);
+        set(handles.staticText_data,'String','Data (up to date with dictionary)');
     end
  
     flags = [-1 -1 -1];
@@ -175,7 +183,7 @@ else
         plotDictNeighbors(handles.graph_dictNeighbors,flags,data,...
             dataDict(selectedTemplateIndex-1));
     else
-       errordlg('Error with graph_dictNeighbors.'); 
+       errordlg('Error with graph_dictNeighbors: selectedTemplateIndex.'); 
     end
 end
 
@@ -227,6 +235,7 @@ else
         handles.Fscore = Fscore;
         handles.refreshDictNeighbors = 0;
         guidata(hObject,handles);
+        set(handles.staticText_data,'String','Data (up to date with dictionary)');
 
         % Plot neighbors for all templates, defaults to 'All' in listbox
         plotDataRegions(handles.graph_dictNeighbors,data,regions);
@@ -261,7 +270,7 @@ function button_importDict_Callback(hObject, eventdata, handles)
 fileName = uigetfile('.mat');
 if fileName ~= 0
    matFile = load(fileName);
-   if isfield(matFile, {'template','length','threshold'})
+   if assertDictFields(matFile);
        dataDict = matFile;
        
        % Clear highlighted neighbors if applicable
@@ -295,6 +304,7 @@ if fileName ~= 0
                dataDict(i).unorderFPIndices = unorderFPIndices;
            end
            handles.refreshDictNeighbors = 0;
+           set(handles.staticText_data,'String','Data (up to date with dictionary)');
        else
            for i=1:length(dataDict)
                dataDict(i).tpIndices = [];
@@ -303,6 +313,7 @@ if fileName ~= 0
                dataDict(i).unorderFPIndices = [];
            end
            handles.refreshDictNeighbors = 1;
+           set(handles.staticText_data,'String','Data (NOT up to date with dictionary)');
        end
        handles.dataDict = dataDict;
        guidata(hObject,handles);
@@ -329,6 +340,10 @@ function button_exportDict_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 inputHandles = guidata(hObject);
 if isfield(inputHandles,'dataDict')
+    if ~assertDictFields(inputHandles.dataDict)
+        errordlg('Error with dictionary fields.');
+        return;
+    end
     filename = uiputfile('.mat','Save current dictionary.');
     if ~isempty(filename)
         % clear indices before saving
@@ -539,9 +554,37 @@ function listbox_dictTemplates_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns listbox_dictTemplates contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from listbox_dictTemplates
 
+% Value of selectedTemplateIndex <= length(dataDict) + 1
 selectedTemplateIndex = get(hObject,'Value');
 handles.selectedTemplateIndex = selectedTemplateIndex;
 guidata(hObject,handles);
+
+% Need to implement close in view of a template vs TPs/FPs
+inputHandles = guidata(hObject);
+if isfield(inputHandles,{'dataDict'})
+    dataDict = inputHandles.dataDict;
+    if ~assertDictFields(dataDict)
+        errordlg('Error with dictionary fields.');
+        return;
+    end
+    if selectedTemplateIndex == 1
+        plotDictTemplates(handles.graph_dictTemplates,dataDict);
+        hold(handles.graph_dictTemplates,'off');
+    elseif selectedTemplateIndex > 1 && selectedTemplateIndex <= length(dataDict) + 1        
+        flags = [-1 -1 -1];
+        flags(1) = get(handles.checkbox_evalTemplatesInOrder,'Value');
+        flags(2) = get(handles.checkbox_displayCorrectNeighbors,'Value');
+        flags(3) = get(handles.checkbox_displayIncorrectNeighbors,'Value');
+        
+        % Use plotTemplateNeighbors()
+        plotTemplateNeighbors(handles.graph_dictTemplates,flags,data,...
+            dataDict(selectedTemplateIndex-1));
+    else
+        errordlg('Error with graph_dictTemplates: selectedTemplateIndex.');
+    end
+else
+    errordlg('Need to import or learn dictionary.');
+end
 
 
 
