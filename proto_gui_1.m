@@ -22,7 +22,7 @@ function varargout = proto_gui_1(varargin)
 
 % Edit the above text to modify the response to help proto_gui_1
 
-% Last Modified by GUIDE v2.5 19-Aug-2017 21:11:04
+% Last Modified by GUIDE v2.5 22-Aug-2017 12:51:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -60,6 +60,9 @@ handles.refreshDictNeighbors = 1;
 
 % if 1, then apply to all templates, else apply to the i-1 template
 handles.selectedTemplateIndex = 1;
+
+% inf to display all neighbors for a template in template graph
+handles.displayNumNeighbors = inf;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -169,6 +172,7 @@ else
         end       
         refreshDictNeighbors = 0;
         handles.refreshDictNeighbors = refreshDictNeighbors;
+        handles.dataDict = dataDict;
         guidata(hObject,handles);
         set(handles.staticText_data,'String','Data (up to date with dictionary)');
     end
@@ -559,33 +563,6 @@ selectedTemplateIndex = get(hObject,'Value');
 handles.selectedTemplateIndex = selectedTemplateIndex;
 guidata(hObject,handles);
 
-% Need to implement close in view of a template vs TPs/FPs
-inputHandles = guidata(hObject);
-if isfield(inputHandles,{'dataDict'})
-    dataDict = inputHandles.dataDict;
-    if ~assertDictFields(dataDict)
-        errordlg('Error with dictionary fields.');
-        return;
-    end
-    if selectedTemplateIndex == 1
-        plotDictTemplates(handles.graph_dictTemplates,dataDict);
-        hold(handles.graph_dictTemplates,'off');
-    elseif selectedTemplateIndex > 1 && selectedTemplateIndex <= length(dataDict) + 1        
-        flags = [-1 -1 -1];
-        flags(1) = get(handles.checkbox_evalTemplatesInOrder,'Value');
-        flags(2) = get(handles.checkbox_displayCorrectNeighbors,'Value');
-        flags(3) = get(handles.checkbox_displayIncorrectNeighbors,'Value');
-        
-        % Use plotTemplateNeighbors()
-        plotTemplateNeighbors(handles.graph_dictTemplates,flags,data,...
-            dataDict(selectedTemplateIndex-1));
-    else
-        errordlg('Error with graph_dictTemplates: selectedTemplateIndex.');
-    end
-else
-    errordlg('Need to import or learn dictionary.');
-end
-
 
 
 % --- Executes during object creation, after setting all properties.
@@ -617,3 +594,92 @@ function checkbox_displayIncorrectNeighbors_Callback(hObject, eventdata, handles
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_displayIncorrectNeighbors
+
+% --- Executes on button press in checkbox_evalTemplatesInOrder
+function checkbox_evalTemplatesInOrder_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_displayIncorrectNeighbors (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_evalTemplatesInOrder
+
+
+function input_numNeighbors_Callback(hObject, eventdata, handles)
+% hObject    handle to input_numNeighbors (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of input_numNeighbors as text
+%        str2double(get(hObject,'String')) returns contents of input_numNeighbors as a double
+input = get(hObject,'String');
+input = str2num(input);
+if isempty(input)
+    handles.displayNumNeighbors = inf; % Display all option
+    guidata(hObject,handles);
+elseif isnan(input) || ~rem(input,1)==0
+    errordlg('# of Neighbors must be a positive integer.');
+else
+    handles.displayNumNeighbors = input;
+    guidata(hObject,handles);
+end
+
+% --- Executes during object creation, after setting all properties.
+function input_numNeighbors_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to input_numNeighbors (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in button_plotTemplate.
+function button_plotTemplate_Callback(hObject, eventdata, handles)
+% hObject    handle to button_plotTemplate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Need to implement close in view of a template vs TPs/FPs
+inputHandles = guidata(hObject);
+if inputHandles.selectedTemplateIndex == 1 && isfield(inputHandles,'dataDict') && ...
+        assertDictFields(inputHandles.dataDict)
+    plotDictTemplates(handles.graph_dictTemplates,inputHandles.dataDict);
+    hold(handles.graph_dictTemplates,'off');
+elseif inputHandles.selectedTemplateIndex > 1 && all(isfield(inputHandles,{'dataDict',...
+        'refreshDictNeighbors','data','regions','regionLabels','displayNumNeighbors'}))
+    dataDict = inputHandles.dataDict;
+    data = inputHandles.data;
+    regions = inputHandles.regions;
+    regionLabels = inputHandles.regionLabels;
+    selectedTemplateIndex = inputHandles.selectedTemplateIndex;
+    displayNumNeighbors = inputHandles.displayNumNeighbors;
+    
+    if handles.refreshDictNeighbors == 1
+        [~,~,~,~,sortedTPIndices,sortedFPIndices] = ...
+            getClassifiedNeighbors2(data,dataDict,regions,regionLabels);
+        for i=1:length(dataDict)
+            dataDict(i).tpIndices = sortedTPIndices{i};
+            dataDict(i).fpIndices = sortedFPIndices{i};
+            [unorderTPIndices,unorderFPIndices] = ...
+                getClassifiedNeighbors2(data,dataDict(i),regions,regionLabels);
+            dataDict(i).unorderTPIndices = unorderTPIndices;
+            dataDict(i).unorderFPIndices = unorderFPIndices;
+        end       
+        refreshDictNeighbors = 0;
+        handles.refreshDictNeighbors = refreshDictNeighbors;
+        handles.dataDict = dataDict;
+        guidata(hObject,handles);
+        set(handles.staticText_data,'String','Data (up to date with dictionary)');
+    end
+    
+    flags = [-1 -1 -1];
+    flags(1) = get(handles.checkbox_evalTemplatesInOrder,'Value');
+    flags(2) = get(handles.checkbox_displayCorrectNeighbors,'Value');
+    flags(3) = get(handles.checkbox_displayIncorrectNeighbors,'Value');
+    plotTemplateNeighbors(handles.graph_dictTemplates,flags,data,...
+        dataDict(selectedTemplateIndex-1),displayNumNeighbors);
+else
+    errordlg('Error with graphing templates.');
+end
