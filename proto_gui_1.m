@@ -97,6 +97,7 @@ if fileName ~= 0
         handles.regionLabels = matFile.regionLabels;
         handles.refreshDictNeighbors = 1;
         set(handles.staticText_data,'String','Data (NOT up to date with dictionary)');
+        set(handles.staticText_dictTemplates,'String','Dictionary Templates (NOT up to date with data)');
         % save handles
         guidata(hObject,handles);
 
@@ -154,23 +155,8 @@ else
     plotDataRegions(handles.graph_dictNeighbors,data,regions);
     hold(handles.graph_dictNeighbors,'on');
     
-    % Need to do case: import dict, import data, plot
-    % What if filled dict with data1, then loads data2?
-    % If loading new data with a dict on hand, it should automatically
-    % instantiate the dictionary indices
-    % If loading a new dict to data on hand... (done)
-    % If loading a new dict to NO data on hand -- see case 1
     if refreshDictNeighbors == 1
-        [~,~,~,~,sortedTPIndices,sortedFPIndices] = ...
-            getClassifiedNeighbors2(data,dataDict,regions,regionLabels);
-        for i=1:length(dataDict)
-            dataDict(i).tpIndices = sortedTPIndices{i};
-            dataDict(i).fpIndices = sortedFPIndices{i};
-            [unorderTPIndices,unorderFPIndices] = ...
-                getClassifiedNeighbors2(data,dataDict(i),regions,regionLabels);
-            dataDict(i).unorderTPIndices = unorderTPIndices;
-            dataDict(i).unorderFPIndices = unorderFPIndices;
-        end       
+        dataDict = updateDictIndices(data,dataDict,regions,regionLabels);
         refreshDictNeighbors = 0;
         handles.refreshDictNeighbors = refreshDictNeighbors;
         handles.dataDict = dataDict;
@@ -303,16 +289,7 @@ if fileName ~= 0
            data = inputHandles.data;
            regions = inputHandles.regions;
            regionLabels = inputHandles.regionLabels;
-           [~,~,~,~,sortedTPIndices,sortedFPIndices] = ...
-               getClassifiedNeighbors2(data,dataDict,regions,regionLabels);
-           for i=1:length(dataDict)
-               dataDict(i).tpIndices = sortedTPIndices{i};
-               dataDict(i).fpIndices = sortedFPIndices{i};
-               [unorderTPIndices,unorderFPIndices] = ...
-                   getClassifiedNeighbors2(data,dataDict(i),regions,regionLabels);
-               dataDict(i).unorderTPIndices = unorderTPIndices;
-               dataDict(i).unorderFPIndices = unorderFPIndices;
-           end
+           dataDict = updateDictIndices(data,dataDict,regions,regionLabels);
            handles.refreshDictNeighbors = 0;
            set(handles.staticText_data,'String','Data (up to date with dictionary)');
        else
@@ -571,6 +548,62 @@ selectedTemplateIndex = get(hObject,'Value');
 handles.selectedTemplateIndex = selectedTemplateIndex;
 guidata(hObject,handles);
 
+%% NOTE TO SELF: NEED TO REDO GUI to make it more modular and scaleable
+inputHandles = guidata(hObject);
+if all(isfield(inputHandles,{'dataDict','refreshDictNeighbors','selectedTemplateIndex'}))
+    dataDict = inputHandles.dataDict;
+    refreshDictNeighbors = inputHandles.refreshDictNeighbors;
+    selectedTemplateIndex = inputHandles.selectedTemplateIndex;
+    
+    if assertDictFields(dataDict)
+        precisionStringVal = 'Precision: --';
+        numTPStringVal = 'True positives: --';
+        numFPStringVal = 'False positives: --';
+        if refreshDictNeighbors == 0
+            if selectedTemplateIndex == 1
+                numTP = 0;
+                numFP = 0;
+                for i=1:length(dataDict)
+                    tp = length(dataDict(i).tpIndices);
+                    fp = length(dataDict(i).fpIndices);
+                    numTP = numTP + tp;
+                    numFP = numFP + fp;
+                end
+                precision = numTP/(numTP+numFP);
+                
+                precisionStringVal = strcat('Precision: ', num2str(precision));
+                numTPStringVal = strcat('True positives: ', num2str(numTP));
+                numFPStringVal = strcat('False positives: ',num2str(numFP));
+            elseif length(dataDict)+1 >= selectedTemplateIndex
+                % display both ordered and unordered
+                numTP = length(dataDict(selectedTemplateIndex-1).tpIndices);
+                numFP = length(dataDict(selectedTemplateIndex-1).fpIndices);
+                precision = numTP/(numTP+numFP);
+                numUnorderTP = length(dataDict(selectedTemplateIndex-1).unorderTPIndices);
+                numUnorderFP = length(dataDict(selectedTemplateIndex-1).unorderFPIndices);
+                precisionUnorder = numUnorderTP/(numUnorderTP+numUnorderFP);
+                
+                precisionStringVal = strcat('Precision: ',num2str(precision),...
+                    ' (unorder: ',num2str(precisionUnorder),')');
+                numTPStringVal = strcat('True positives: ',num2str(numTP),...
+                    ' (unorder: ',num2str(numUnorderTP),')');
+                numFPStringVal = strcat('False positives: ',num2str(numFP),...
+                    ' (unorder: ',num2str(numUnorderFP),')');
+            else
+                errordlg('Error with selectedTemplateIndex display');
+            end
+        end
+        set(handles.staticText_precision,'String',precisionStringVal);
+        set(handles.staticText_numTP,'String',numTPStringVal);
+        set(handles.staticText_numFP,'String',numFPStringVal);
+    else
+        errordlg('Error with displaying dictionary precision'); 
+        return;
+    end
+end
+
+
+
 
 
 % --- Executes during object creation, after setting all properties.
@@ -680,6 +713,7 @@ elseif inputHandles.selectedTemplateIndex > 1 && all(isfield(inputHandles,{'data
         handles.dataDict = dataDict;
         guidata(hObject,handles);
         set(handles.staticText_data,'String','Data (up to date with dictionary)');
+        set(handles.staticText_dictTemplates,'String','Dictionary Templates (up to date with data)');
     end
     
     flags = [-1 -1 -1];
