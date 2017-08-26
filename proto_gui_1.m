@@ -96,28 +96,18 @@ if fileName ~= 0
         handles.regions = matFile.regions;
         handles.regionLabels = matFile.regionLabels;
         handles.refreshDictNeighbors = 1;
-        set(handles.staticText_data,'String','Data (NOT up to date with dictionary)');
-        set(handles.staticText_dictTemplates,'String','Dictionary Templates (NOT up to date with data)');
         % save handles
         guidata(hObject,handles);
+        
+        % update static text data, dictTemplates to be outdated
+        updateStaticText(handles,'data',false);
+        updateStaticText(handles,'dictTemplate',false);
 
-        % Plot the data
+        % Plot the data & region boundaries
         plotDataRegions(handles.graph_dictNeighbors,handles.data,handles.regions);
-        hold(handles.graph_dictNeighbors,'on');
 
         % Plot the region labels
-        cla(handles.graph_regionLabels,'reset');
-        labelAnnotations = [];
-        for i=1:length(handles.regionLabels)
-            if handles.regionLabels(i) == 1
-                l = ones(handles.regions(i,2)-handles.regions(i,1)+1,1);
-                labelAnnotations = [labelAnnotations; l];
-            else
-                l = zeros(handles.regions(i,2)-handles.regions(i,1)+1,1);
-                labelAnnotations = [labelAnnotations; l];
-            end
-        end
-        plot(handles.graph_regionLabels, labelAnnotations);
+        plotRegionLabels(handles.graph_regionLabels,regions,regionLabels);
     else
         errordlg('File has fields "data","regions", and "regionLabels."');
     end
@@ -158,10 +148,11 @@ else
     if refreshDictNeighbors == 1
         dataDict = updateDictIndices(data,dataDict,regions,regionLabels);
         refreshDictNeighbors = 0;
+        % update handles object
         handles.refreshDictNeighbors = refreshDictNeighbors;
         handles.dataDict = dataDict;
         guidata(hObject,handles);
-        set(handles.staticText_data,'String','Data (up to date with dictionary)');
+        updateStaticText(handles,'data',true);
     end
  
     flags = [-1 -1 -1];
@@ -228,7 +219,7 @@ else
         handles.Fscore = Fscore;
         handles.refreshDictNeighbors = 0;
         guidata(hObject,handles);
-        set(handles.staticText_data,'String','Data (up to date with dictionary)');
+        updateStaticText(handles,'data',false);
 
         % Plot neighbors for all templates, defaults to 'All' in listbox
         plotDataRegions(handles.graph_dictNeighbors,data,regions);
@@ -248,7 +239,6 @@ else
    
         % Plot dictionary templates
         plotDictTemplates(handles.graph_dictTemplates,dataDict);
-        hold(handles.graph_dictTemplates,'off');
     end
 end
 
@@ -291,7 +281,6 @@ if fileName ~= 0
            regionLabels = inputHandles.regionLabels;
            dataDict = updateDictIndices(data,dataDict,regions,regionLabels);
            handles.refreshDictNeighbors = 0;
-           set(handles.staticText_data,'String','Data (up to date with dictionary)');
        else
            for i=1:length(dataDict)
                dataDict(i).tpIndices = [];
@@ -300,15 +289,16 @@ if fileName ~= 0
                dataDict(i).unorderFPIndices = [];
            end
            handles.refreshDictNeighbors = 1;
-           set(handles.staticText_data,'String','Data (NOT up to date with dictionary)');
        end
+       updateStaticText(handles,'data',true);
+       updateStaticText(handles,'dictTemplate',true);
        handles.dataDict = dataDict;
        guidata(hObject,handles);
        
        % Load templates to listbox
        updateListboxTemplates(handles.listbox_dictTemplates,dataDict);
 
-       % Plot dictionary templates
+       % Plot all dictionary templates
        plotDictTemplates(handles.graph_dictTemplates,dataDict);
        hold(handles.graph_dictTemplates,'off');
    else
@@ -560,42 +550,11 @@ if all(isfield(inputHandles,{'dataDict','refreshDictNeighbors','selectedTemplate
         numTPStringVal = 'True positives: --';
         numFPStringVal = 'False positives: --';
         if refreshDictNeighbors == 0
-            if selectedTemplateIndex == 1
-                numTP = 0;
-                numFP = 0;
-                for i=1:length(dataDict)
-                    tp = length(dataDict(i).tpIndices);
-                    fp = length(dataDict(i).fpIndices);
-                    numTP = numTP + tp;
-                    numFP = numFP + fp;
-                end
-                precision = numTP/(numTP+numFP);
-                
-                precisionStringVal = strcat('Precision: ', num2str(precision));
-                numTPStringVal = strcat('True positives: ', num2str(numTP));
-                numFPStringVal = strcat('False positives: ',num2str(numFP));
-            elseif length(dataDict)+1 >= selectedTemplateIndex
-                % display both ordered and unordered
-                numTP = length(dataDict(selectedTemplateIndex-1).tpIndices);
-                numFP = length(dataDict(selectedTemplateIndex-1).fpIndices);
-                precision = numTP/(numTP+numFP);
-                numUnorderTP = length(dataDict(selectedTemplateIndex-1).unorderTPIndices);
-                numUnorderFP = length(dataDict(selectedTemplateIndex-1).unorderFPIndices);
-                precisionUnorder = numUnorderTP/(numUnorderTP+numUnorderFP);
-                
-                precisionStringVal = strcat('Precision: ',num2str(precision),...
-                    ' (unorder: ',num2str(precisionUnorder),')');
-                numTPStringVal = strcat('True positives: ',num2str(numTP),...
-                    ' (unorder: ',num2str(numUnorderTP),')');
-                numFPStringVal = strcat('False positives: ',num2str(numFP),...
-                    ' (unorder: ',num2str(numUnorderFP),')');
+            updateMetaDataText();
             else
                 errordlg('Error with selectedTemplateIndex display');
-            end
         end
-        set(handles.staticText_precision,'String',precisionStringVal);
-        set(handles.staticText_numTP,'String',numTPStringVal);
-        set(handles.staticText_numFP,'String',numFPStringVal);
+    end
     else
         errordlg('Error with displaying dictionary precision'); 
         return;

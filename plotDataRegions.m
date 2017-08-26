@@ -1,15 +1,15 @@
-function [] = plotDataRegions(handles,data,regions)
+function [] = plotDataRegions(handle,data,regions)
 % Plots the data and regions
-cla(handles,'reset');
+cla(handle,'reset');
 white = [1 1 1];
 for i=1:size(regions,1)
-    area(handles,...
+    area(handle,...
         regions(i,:), [10 10], 'FaceColor', white, ...
         'LineStyle', ':');
-    hold(handles,'on');
+    hold(handle,'on');
 end
-plot(handles,data);
-hold(handles,'on');
+plot(handle,data);
+hold(handle,'off');
 
 end
 
