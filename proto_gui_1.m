@@ -538,7 +538,6 @@ selectedTemplateIndex = get(hObject,'Value');
 handles.selectedTemplateIndex = selectedTemplateIndex;
 guidata(hObject,handles);
 
-%% NOTE TO SELF: NEED TO REDO GUI to make it more modular and scaleable
 inputHandles = guidata(hObject);
 if all(isfield(inputHandles,{'dataDict','refreshDictNeighbors','selectedTemplateIndex'}))
     dataDict = inputHandles.dataDict;
@@ -551,10 +550,9 @@ if all(isfield(inputHandles,{'dataDict','refreshDictNeighbors','selectedTemplate
         numFPStringVal = 'False positives: --';
         if refreshDictNeighbors == 0
             updateMetaDataText();
-            else
+        else
                 errordlg('Error with selectedTemplateIndex display');
         end
-    end
     else
         errordlg('Error with displaying dictionary precision'); 
         return;
