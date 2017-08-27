@@ -41,7 +41,8 @@ while (length(candidateIndices) < k)
     % begin comparing query to dictionary
     skipCandidate = 0;
     for subLen=startLen:stepLen:endLen
-        if subLen > length(concatEntries) || isempty(concatEntries) || isempty(dataDict)
+        if subLen > length(concatEntries) || isempty(concatEntries) || ...
+                isempty(dataDict) || ind+subLen-1 > length(mpData)
             break;
         elseif length(dataDict) == 1
             query = mpData(ind:ind+subLen-1);

@@ -1,6 +1,6 @@
 function [dataDict, currDictFscore, estTotalTPs, precision, recall] = ...
     learnDataDictionary(data,regions,regionLabels,targetLabel,...
-        startLength,stepLength,endLength,F_beta,k)
+        startLength,stepLength,endLength,F_beta,k,AV_type)
 
 if nargin == 7
     F_beta = 1;
@@ -20,6 +20,11 @@ for i=1:length(regionLabels)
 end
 
 matrixProfile = interactiveMatrixProfileVer2(mpData,startLength);
+if exist('AV_type','var')
+    [AV,cmp] = createAnnotationVec(matrixProfile,mpData,startLength,AV_type);
+    matrixProfile = cmp;
+end
+
 dataDict = [];
 prevDictFscore = -1;
 currDictFscore = 0;

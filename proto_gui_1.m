@@ -22,7 +22,7 @@ function varargout = proto_gui_1(varargin)
 
 % Edit the above text to modify the response to help proto_gui_1
 
-% Last Modified by GUIDE v2.5 22-Aug-2017 12:51:01
+% Last Modified by GUIDE v2.5 27-Aug-2017 15:34:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -107,7 +107,7 @@ if fileName ~= 0
         plotDataRegions(handles.graph_dictNeighbors,handles.data,handles.regions);
 
         % Plot the region labels
-        plotRegionLabels(handles.graph_regionLabels,regions,regionLabels);
+        plotRegionLabels(handles.graph_regionLabels,handles.regions,handles.regionLabels);
     else
         errordlg('File has fields "data","regions", and "regionLabels."');
     end
@@ -161,14 +161,13 @@ else
     flags(3) = get(handles.checkbox_displayIncorrectNeighbors,'Value');
     if selectedTemplateIndex == 1
         plotDictNeighbors(handles.graph_dictNeighbors,flags,data,dataDict);
-        hold(handles.graph_dictNeighbors,'off');
     elseif selectedTemplateIndex > 1 && selectedTemplateIndex <= length(dataDict) + 1
         plotDictNeighbors(handles.graph_dictNeighbors,flags,data,...
             dataDict(selectedTemplateIndex-1));
-        hold(handles.graph_dictNeighbors,'off');
     else
        errordlg('Error with graph_dictNeighbors: selectedTemplateIndex.'); 
     end
+    hold(handles.graph_dictNeighbors,'off');
 end
 
 
@@ -204,8 +203,11 @@ else
         errordlg('Need to input parameters before creating dictionary.');
         return;
     else
+        if get(handles.checkbox_useSimplicityBias,'Value')
+           AV_type = 'simple';
+        end
         [dataDict, Fscore] = learnDataDictionary(data,regions,regionLabels,...
-            targetLabel,startLength,stepLength,endLength,Fbeta,k);
+            targetLabel,startLength,stepLength,endLength,Fbeta,k,AV_type);
         
         % Save unorder TP,FP for each entry
         for i=1:length(dataDict)
@@ -219,7 +221,8 @@ else
         handles.Fscore = Fscore;
         handles.refreshDictNeighbors = 0;
         guidata(hObject,handles);
-        updateStaticText(handles,'data',false);
+        updateStaticText(handles,'data',true);
+        updateStaticText(handles,'dictTemplate',true);
 
         % Plot neighbors for all templates, defaults to 'All' in listbox
         plotDataRegions(handles.graph_dictNeighbors,data,regions);
@@ -290,8 +293,8 @@ if fileName ~= 0
            end
            handles.refreshDictNeighbors = 1;
        end
-       updateStaticText(handles,'data',true);
-       updateStaticText(handles,'dictTemplate',true);
+       updateStaticText(handles,'data',false);
+       updateStaticText(handles,'dictTemplate',false);
        handles.dataDict = dataDict;
        guidata(hObject,handles);
        
@@ -549,9 +552,11 @@ if all(isfield(inputHandles,{'dataDict','refreshDictNeighbors','selectedTemplate
         numTPStringVal = 'True positives: --';
         numFPStringVal = 'False positives: --';
         if refreshDictNeighbors == 0
-            updateMetaDataText();
+            updateMetaDataText(handles,selectedTemplateIndex,dataDict);
         else
-                errordlg('Error with selectedTemplateIndex display');
+            set(handles.staticText_precision,'String',precisionStringVal);
+            set(handles.staticText_numTP,'String',numTPStringVal);
+            set(handles.staticText_numFP,'String',numFPStringVal);
         end
     else
         errordlg('Error with displaying dictionary precision'); 
@@ -669,8 +674,8 @@ elseif inputHandles.selectedTemplateIndex > 1 && all(isfield(inputHandles,{'data
         handles.refreshDictNeighbors = refreshDictNeighbors;
         handles.dataDict = dataDict;
         guidata(hObject,handles);
-        set(handles.staticText_data,'String','Data (up to date with dictionary)');
-        set(handles.staticText_dictTemplates,'String','Dictionary Templates (up to date with data)');
+        updateStaticText(handles,'data',true);
+        updateStaticText(handles,'dictTemplate',true);
     end
     
     flags = [-1 -1 -1];
@@ -683,3 +688,12 @@ elseif inputHandles.selectedTemplateIndex > 1 && all(isfield(inputHandles,{'data
 else
     errordlg('Error with graphing templates.');
 end
+
+
+% --- Executes on button press in checkbox_useSimplicityBias.
+function checkbox_useSimplicityBias_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_useSimplicityBias (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_useSimplicityBias
