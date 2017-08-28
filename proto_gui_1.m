@@ -204,7 +204,9 @@ else
         return;
     else
         if get(handles.checkbox_useSimplicityBias,'Value')
-           AV_type = 'simple';
+            AV_type = 'simple';
+        else
+            AV_type = '';
         end
         [dataDict, Fscore] = learnDataDictionary(data,regions,regionLabels,...
             targetLabel,startLength,stepLength,endLength,Fbeta,k,AV_type);

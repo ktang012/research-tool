@@ -13,8 +13,6 @@ if strcmp(type,'simple')
     end
     AV = AV - min(AV);
     AV = AV / max(AV);    
-else
-    disp('Invalid AV action');
 end
 
 cmp = mp + ((1 - AV) * max(mp));

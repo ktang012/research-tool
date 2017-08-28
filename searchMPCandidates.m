@@ -39,7 +39,9 @@ while (length(candidateIndices) < k)
     end
     
     % begin comparing query to dictionary
+    
     skipCandidate = 0;
+    %{ This probably doesn't even help at all...
     for subLen=startLen:stepLen:endLen
         if subLen > length(concatEntries) || isempty(concatEntries) || ...
                 isempty(dataDict) || ind+subLen-1 > length(mpData)
@@ -67,7 +69,7 @@ while (length(candidateIndices) < k)
            break;
         end
     end
-    
+    %}
     bottomHalf = ind-floor(startLen/2);
     upperHalf = ind+floor(startLen/2);
     if bottomHalf < 0

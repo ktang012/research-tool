@@ -41,7 +41,7 @@ while (currDictFscore - Fdiff) > prevDictFscore
     if estTotalTPs == 0
        estTotalTPs = estimateTotalTP(data,candIndices,mpData,targetLabel,...
            regions,regionLabels,startLength,stepLength,endLength);
-       estTotalTPs = estTotalTPs(1);
+       estTotalTPs = estTotalTPs(1)
     end
     
     % no more candidates to check
