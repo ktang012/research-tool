@@ -38,16 +38,17 @@ while (currDictFscore - Fdiff) > prevDictFscore
     candIndices = searchMPCandidates(mpData,matrixProfile,dataDict,...
         startLength,stepLength,endLength,k);
     
-    if estTotalTPs == 0
-       estTotalTPs = estimateTotalTP(data,candIndices,mpData,targetLabel,...
-           regions,regionLabels,startLength,stepLength,endLength);
-       estTotalTPs = estTotalTPs(1)
-    end
-    
     % no more candidates to check
     if isempty(candIndices)
         break;
     end
+    
+    if estTotalTPs == 0
+       estTotalTPs = estimateTotalTP(data,candIndices,mpData,targetLabel,...
+           regions,regionLabels,startLength,stepLength,endLength);
+       estTotalTPs = estTotalTPs(1);
+    end
+    
     
     learnedQueries = {}; thresholds = []; Fscores = [];
     for i=1:length(candIndices)

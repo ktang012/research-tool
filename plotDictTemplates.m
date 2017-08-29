@@ -4,7 +4,7 @@ if nargin < 3
     lineWidth = 1.5;
 end
 
-cla(handle,'reset');
+cla(handle);
 for i=1:length(dataDict)
     plot(handle,...
         [1:length(dataDict(i).template)],dataDict(i).template,...

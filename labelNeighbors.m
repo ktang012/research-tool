@@ -17,6 +17,7 @@ for i=1:length(neighbors)
    
    if ~foundLabel
        betweenRegionsIndex = (neighbor >= regions(:,1) & neighbor <= regions(:,2));
+       % find out which region the neighbor falls in
        [~,betweenRegionsIndex] = max(betweenRegionsIndex);
        betweenRegions = regions(betweenRegionsIndex,:);
        % If more than half falls outside of region...

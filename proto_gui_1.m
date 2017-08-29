@@ -104,10 +104,10 @@ if fileName ~= 0
         updateStaticText(handles,'dictTemplate',false);
 
         % Plot the data & region boundaries
-        plotDataRegions(handles.graph_dictNeighbors,handles.data,handles.regions);
+        plotDataRegions(handles.graph_dictNeighbors,matFile.data,matFile.regions);
 
         % Plot the region labels
-        plotRegionLabels(handles.graph_regionLabels,handles.regions,handles.regionLabels);
+        plotRegionLabels(handles.graph_regionLabels,matFile.regions,matFile.regionLabels);
     else
         errordlg('File has fields "data","regions", and "regionLabels."');
     end
@@ -329,14 +329,14 @@ if isfield(inputHandles,'dataDict')
     filename = uiputfile('.mat','Save current dictionary.');
     disp(filename);
     if ~isempty(filename)
-        % clear indices before saving
-        for i=1:length(inputHandles.dataDict)
-            inputHandles.dataDict(i).tpIndices = [];
-            inputHandles.dataDict(i).fpIndices = [];
-            inputHandles.dataDict(i).unorderTPIndices = [];
-            inputHandles.dataDict(i).unorderFPIndices = [];
-        end
         dataDict = inputHandles.dataDict;
+        %{
+        dataDict = rmfield(dataDict,{'query','tpIndices','fpIndices',...
+            'unorderTPIndices','unorderFPIndices'});
+        %}
+        
+        dataDict = rmfield(dataDict,{'query'});
+        
         save(filename,'dataDict');
     else
         errordlg('Invalid dictionary name.');

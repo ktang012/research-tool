@@ -4,7 +4,7 @@ function [] = plotTemplateNeighbors(handle,flags,data,template,dispNumNeighbors)
 % flags(1) == 1 is ordered indices
 % TODO: If flags(2) and flags(3) then plot color blue and red, else default
 % colors
-cla(handle,'reset');
+cla(handle);
 if length(flags) == 3
     if flags(1)
         if flags(2) && flags(3)

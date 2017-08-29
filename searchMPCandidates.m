@@ -20,7 +20,7 @@ for i=1:length(dataDict)
     dictLen = dataDict(i).length;
     bottomHalf = dictInd-floor(dictLen/2);
     upperHalf = dictInd+floor(dictLen/2);
-    if bottomHalf < 0
+    if bottomHalf <= 0
         bottomHalf = 1;
     elseif upperHalf > length(matrixProfile)
         upperHalf = length(matrixProfile);
@@ -72,7 +72,7 @@ while (length(candidateIndices) < k)
     %}
     bottomHalf = ind-floor(startLen/2);
     upperHalf = ind+floor(startLen/2);
-    if bottomHalf < 0
+    if bottomHalf <= 0
         bottomHalf = 1;
     elseif upperHalf > length(matrixProfile)
         upperHalf = length(matrixProfile);
