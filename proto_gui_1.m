@@ -327,8 +327,7 @@ if isfield(inputHandles,'dataDict')
         return;
     end
     filename = uiputfile('.mat','Save current dictionary.');
-    disp(filename);
-    if ~isempty(filename)
+    if ischar(filename)
         dataDict = inputHandles.dataDict;
         
         dataDict = rmfield(dataDict,{'tpIndices','fpIndices',...

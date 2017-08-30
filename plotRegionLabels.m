@@ -1,6 +1,7 @@
 function [] = plotRegionLabels(handle,regions,regionLabels)
 % Plots region labels
 cla(handle);
+hold(handle,'on');
 labelAnnotations = [];
 %{
 for i=1:length(regionLabels)
@@ -21,5 +22,6 @@ end
 
 
 plot(handle, labelAnnotations);
+hold(handle,'off');
 end
 
