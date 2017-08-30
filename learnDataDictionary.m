@@ -10,16 +10,20 @@ elseif nargin == 8
 end
 
 mpData = [];
+concatIndices = [];
 for i=1:length(regionLabels)
     if regionLabels(i) == targetLabel
        startInd = regions(i,1);
        endInd = regions(i,2);
        m = data(startInd:endInd);
+       c = length(m) + length(mpData);
+       concatIndices = [concatIndices; c];
        mpData = [mpData; m];
     end
 end
 
-matrixProfile = interactiveMatrixProfileVer2(mpData,startLength);
+
+[matrixProfile, profileIndex, motifIndex] = interactiveMatrixProfileVer2(mpData,startLength);
 if exist('AV_type','var')
     [AV,cmp] = createAnnotationVec(matrixProfile,mpData,startLength,AV_type);
     matrixProfile = cmp;
@@ -36,7 +40,7 @@ estTotalTPs = 0;
 while (currDictFscore - Fdiff) > prevDictFscore
     prevDictFscore = currDictFscore;
     candIndices = searchMPCandidates(mpData,matrixProfile,dataDict,...
-        startLength,stepLength,endLength,k);
+        startLength,stepLength,endLength,k, concatIndices);
     
     % no more candidates to check
     if isempty(candIndices)
@@ -90,6 +94,8 @@ while (currDictFscore - Fdiff) > prevDictFscore
     
     [dictIndices,currDictFscore,cumulativeTPCount,cumulativeFPCount,indLengths] = ...
         evalDataDict(data,dataDict,F_beta,regions,regionLabels,estTotalTPs);
+    
+    currDictFscore
     
 end
 

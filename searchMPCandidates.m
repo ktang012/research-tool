@@ -1,12 +1,12 @@
 function [candidateIndices] = ...
     searchMPCandidates(mpData,matrixProfile,dataDict,...
-        startLen,stepLen,endLen,k)
+        startLen,stepLen,endLen,k,concatIndices)
 % Searches the matrix profile against the data dictionary to find
 % candidates that are dissimilar to the dictionary entries
 
-concatEntries = [];
-concatIndices = [];
 for i=1:length(dataDict)
+    
+    %{
     concatEntries = [concatEntries; dataDict(i).query];
     if isempty(concatIndices)
         concatIndices = [1 length(concatEntries)];
@@ -14,6 +14,7 @@ for i=1:length(dataDict)
         indexPair = [concatIndices(end,2)+1 length(concatEntries)];
         concatIndices = [concatIndices; indexPair];
     end
+    %}
     
     % Remove entries from matrix profile
     dictInd = dataDict(i).queryIndex;
@@ -37,11 +38,26 @@ while (length(candidateIndices) < k)
     if val == inf
         break;
     end
+   
+    
+    candidateShortIndices = [ind:ind+startLen-1];
+    candidateLongIndices = [ind:ind+endLen-1];
+    
+    if any(ismember(concatIndices,candidateShortIndices))
+        matrixProfile(ind) = inf;
+        continue;
+    end
+    %{
+    if any(ismember(candidateLongIndices,concatIndices))
+        continue;
+    end
+    %}
+    
     
     % begin comparing query to dictionary
     
     skipCandidate = 0;
-    %{ This probably doesn't even help at all...
+    %{
     for subLen=startLen:stepLen:endLen
         if subLen > length(concatEntries) || isempty(concatEntries) || ...
                 isempty(dataDict) || ind+subLen-1 > length(mpData)

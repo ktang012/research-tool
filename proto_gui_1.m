@@ -330,12 +330,12 @@ if isfield(inputHandles,'dataDict')
     disp(filename);
     if ~isempty(filename)
         dataDict = inputHandles.dataDict;
-        %{
-        dataDict = rmfield(dataDict,{'query','tpIndices','fpIndices',...
-            'unorderTPIndices','unorderFPIndices'});
-        %}
         
-        dataDict = rmfield(dataDict,{'query'});
+        dataDict = rmfield(dataDict,{'tpIndices','fpIndices',...
+            'unorderTPIndices','unorderFPIndices'});
+        
+        
+        %dataDict = rmfield(dataDict,{'query'});
         
         save(filename,'dataDict');
     else

@@ -4,7 +4,7 @@ cla(handle);
 labelAnnotations = [];
 %{
 for i=1:length(regionLabels)
-    if regionLabels(i) == 1
+    if regionLabels(i) == 2
         l = ones(regions(i,2)-regions(i,1)+1,1);
         labelAnnotations = [labelAnnotations; l];
     else
