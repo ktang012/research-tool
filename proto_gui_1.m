@@ -22,7 +22,7 @@ function varargout = proto_gui_1(varargin)
 
 % Edit the above text to modify the response to help proto_gui_1
 
-% Last Modified by GUIDE v2.5 27-Aug-2017 15:34:07
+% Last Modified by GUIDE v2.5 05-Sep-2017 15:50:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -102,6 +102,7 @@ if fileName ~= 0
         % update static text data, dictTemplates to be outdated
         updateStaticText(handles,'data',false);
         updateStaticText(handles,'dictTemplate',false);
+        updatePlotNames(handles,'data',fileName);
 
         % Plot the data & region boundaries
         plotDataRegions(handles.graph_dictNeighbors,matFile.data,matFile.regions);
@@ -152,9 +153,10 @@ else
         handles.refreshDictNeighbors = refreshDictNeighbors;
         handles.dataDict = dataDict;
         guidata(hObject,handles);
-        updateStaticText(handles,'data',true);
     end
- 
+    updateStaticText(handles,'data',true);
+    updateStaticText(handles,'dictTemplate',true);
+    
     flags = [-1 -1 -1];
     flags(1) = get(handles.checkbox_evalTemplatesInOrder,'Value');
     flags(2) = get(handles.checkbox_displayCorrectNeighbors,'Value');
@@ -223,8 +225,10 @@ else
         handles.Fscore = Fscore;
         handles.refreshDictNeighbors = 0;
         guidata(hObject,handles);
+        
         updateStaticText(handles,'data',true);
         updateStaticText(handles,'dictTemplate',true);
+        updatePlotNames(handles,'dict');
 
         % Plot neighbors for all templates, defaults to 'All' in listbox
         plotDataRegions(handles.graph_dictNeighbors,data,regions);
@@ -297,6 +301,7 @@ if fileName ~= 0
        end
        updateStaticText(handles,'data',false);
        updateStaticText(handles,'dictTemplate',false);
+       updatePlotNames(handles,'dict',fileName);
        handles.dataDict = dataDict;
        guidata(hObject,handles);
        
@@ -326,17 +331,17 @@ if isfield(inputHandles,'dataDict')
         errordlg('Error with dictionary fields.');
         return;
     end
-    filename = uiputfile('.mat','Save current dictionary.');
-    if ischar(filename)
+    fileName = uiputfile('.mat','Save current dictionary.');
+    if ischar(fileName)
         dataDict = inputHandles.dataDict;
         
         dataDict = rmfield(dataDict,{'tpIndices','fpIndices',...
             'unorderTPIndices','unorderFPIndices'});
         
-        
+        updatePlotNames(handles,'dict',fileName);
         %dataDict = rmfield(dataDict,{'query'});
         
-        save(filename,'dataDict');
+        save(fileName,'dataDict');
     else
         errordlg('Invalid dictionary name.');
     end
@@ -698,3 +703,60 @@ function checkbox_useSimplicityBias_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_useSimplicityBias
+
+
+% --- Executes on button press in button_exportIndices.
+function button_exportIndices_Callback(hObject, eventdata, handles)
+% hObject    handle to button_exportIndices (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Exports the first displayNumNeighbors indices depending on the checkboxes
+% and selected template to a file 
+inputHandles = guidata(hObject);
+if all(isfield(inputHandles,{'dataDict',...
+        'refreshDictNeighbors','data','regions','regionLabels','displayNumNeighbors'}))
+    dataDict = inputHandles.dataDict;
+    data = inputHandles.data;
+    regions = inputHandles.regions;
+    regionLabels = inputHandles.regionLabels;
+    selectedTemplateIndex = inputHandles.selectedTemplateIndex;
+    displayNumNeighbors = inputHandles.displayNumNeighbors;
+    
+    if handles.refreshDictNeighbors == 1
+        [~,~,~,~,sortedTPIndices,sortedFPIndices] = ...
+            getClassifiedNeighbors2(data,dataDict,regions,regionLabels);
+        for i=1:length(dataDict)
+            dataDict(i).tpIndices = sortedTPIndices{i};
+            dataDict(i).fpIndices = sortedFPIndices{i};
+            [unorderTPIndices,unorderFPIndices] = ...
+                getClassifiedNeighbors2(data,dataDict(i),regions,regionLabels);
+            dataDict(i).unorderTPIndices = unorderTPIndices;
+            dataDict(i).unorderFPIndices = unorderFPIndices;
+        end       
+        refreshDictNeighbors = 0;
+        handles.refreshDictNeighbors = refreshDictNeighbors;
+        handles.dataDict = dataDict;
+        guidata(hObject,handles);
+        updateStaticText(handles,'data',true);
+        updateStaticText(handles,'dictTemplate',true);
+    end
+    
+    flags = [-1 -1 -1];
+    flags(1) = get(handles.checkbox_evalTemplatesInOrder,'Value');
+    flags(2) = get(handles.checkbox_displayCorrectNeighbors,'Value');
+    flags(3) = get(handles.checkbox_displayIncorrectNeighbors,'Value');
+    
+    indices = prepExportIndices(dataDict, selectedTemplateIndex, flags);
+    
+    fileName = uiputfile('.csv','Save exported indices.');
+    if ischar(fileName)
+        csvwrite(fileName,indices);
+    else
+        errordlg('Invalid file name.');
+    end
+    
+    
+else
+    
+end
