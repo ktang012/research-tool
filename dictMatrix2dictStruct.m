@@ -15,7 +15,7 @@ for i=1:size(dictMatrix,2)
     dictEntry.label = dictMatrix(1,i);
     dictEntry.threshold = dictMatrix(2,i);
     dictEntry.length = dictMatrix(3,i);
-    dictEntry.template = dictMatrix(4:dictEntry.length+4-1)';
+    dictEntry.template = dictMatrix(4:dictEntry.length+4-1,i)';
     dictStruct = [dictStruct; dictEntry];
 end
 end

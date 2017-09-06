@@ -22,7 +22,7 @@ function varargout = proto_gui_1(varargin)
 
 % Edit the above text to modify the response to help proto_gui_1
 
-% Last Modified by GUIDE v2.5 05-Sep-2017 15:50:45
+% Last Modified by GUIDE v2.5 05-Sep-2017 16:41:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -259,15 +259,29 @@ function button_importDict_Callback(hObject, eventdata, handles)
 % hObject    handle to button_importDict (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-fileName = uigetfile('.mat');
+fileName = uigetfile({'*.mat' ; '*.txt'});
 if fileName ~= 0
-   matFile = load(fileName);
-   if isfield(matFile,'dataDict')
-       dataDict = matFile.dataDict;
+   myFile = load(fileName);
+   
+   % If it is a matfile, it will have this variable
+   if isfield(myFile,'dataDict')
+       dataDict = myFile.dataDict;
    else
-       dataDict = [];
+       try
+           dataDict = dictMatrix2dictStruct(myFile);
+       catch
+           errordlg('Error converting dictionary text file to mat file');
+           return;
+       end
    end
+   
    if assertDictFields(dataDict);
+       % Copy templates to queries subfield -- old code requires queries
+       % subfield...
+       for i=1:length(dataDict)
+          dataDict(i).query = dataDict(i).template; 
+       end
+      
        % Clear highlighted neighbors if applicable
        inputHandles = guidata(hObject);
        if all(isfield(inputHandles,{'data','regions'}))
@@ -331,19 +345,31 @@ if isfield(inputHandles,'dataDict')
         errordlg('Error with dictionary fields.');
         return;
     end
-    fileName = uiputfile('.mat','Save current dictionary.');
-    if ischar(fileName)
-        dataDict = inputHandles.dataDict;
-        
-        dataDict = rmfield(dataDict,{'tpIndices','fpIndices',...
-            'unorderTPIndices','unorderFPIndices'});
-        
-        updatePlotNames(handles,'dict',fileName);
-        %dataDict = rmfield(dataDict,{'query'});
-        
-        save(fileName,'dataDict');
+    
+    exportAsMAT = get(handles.checkbox_exportAsMAT,'Value');
+    
+    if exportAsMAT
+        fileName = uiputfile('.mat','Save current dictionary.');
+        if ischar(fileName)
+            dataDict = inputHandles.dataDict;    
+            dataDict = rmfield(dataDict,{'query','tpIndices','fpIndices',...
+                'unorderTPIndices','unorderFPIndices'});
+            
+            updatePlotNames(handles,'dict',fileName);
+            
+            save(fileName,'dataDict');
+        else
+            errordlg('Invalid dictionary name.');
+        end
     else
-        errordlg('Invalid dictionary name.');
+        fileName = uiputfile('.txt', 'Save current dictionary.');
+        if ischar(fileName)
+            dataDict = inputHandles.dataDict;
+            dictMatrix = dictStruct2dictMatrix(dataDict);
+            dlmwrite(fileName,dictMatrix,'precision',32);
+        else
+            errordlg('Invalid dictionary name.');
+        end
     end
 else
     errordlg('Could not find a dictionary to save');
@@ -749,9 +775,9 @@ if all(isfield(inputHandles,{'dataDict',...
     
     indices = prepExportIndices(dataDict, selectedTemplateIndex, flags);
     
-    fileName = uiputfile('.csv','Save exported indices.');
+    fileName = uiputfile('.txt','Save exported indices.');
     if ischar(fileName)
-        csvwrite(fileName,indices);
+        dlmwrite(fileName,indices);
     else
         errordlg('Invalid file name.');
     end
@@ -760,3 +786,12 @@ if all(isfield(inputHandles,{'dataDict',...
 else
     
 end
+
+
+% --- Executes on button press in checkbox_exportAsMAT.
+function checkbox_exportAsMAT_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_exportAsMAT (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_exportAsMAT
