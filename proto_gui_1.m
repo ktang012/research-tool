@@ -27,11 +27,11 @@ function varargout = proto_gui_1(varargin)
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @proto_gui_1_OpeningFcn, ...
-                   'gui_OutputFcn',  @proto_gui_1_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @proto_gui_1_OpeningFcn, ...
+    'gui_OutputFcn',  @proto_gui_1_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -64,6 +64,10 @@ handles.selectedTemplateIndex = 1;
 % inf to display all neighbors for a template in template graph
 handles.displayNumNeighbors = inf;
 
+% if 1, then the data has labels
+handles.dataHasLabels = 0;
+
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -72,7 +76,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = proto_gui_1_OutputFcn(hObject, eventdata, handles) 
+function varargout = proto_gui_1_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -96,21 +100,40 @@ if fileName ~= 0
         handles.regions = matFile.regions;
         handles.regionLabels = matFile.regionLabels;
         handles.refreshDictNeighbors = 1;
+        handles.dataHasLabels = 1;
         % save handles
         guidata(hObject,handles);
         
         % update static text data, dictTemplates to be outdated
         updateStaticText(handles,'data',false);
         updateStaticText(handles,'dictTemplate',false);
+        updateStaticText(handles,'regionLabel',true);
         updatePlotNames(handles,'data',fileName);
-
+        
         % Plot the data & region boundaries
         plotDataRegions(handles.graph_dictNeighbors,matFile.data,matFile.regions);
-
+        
         % Plot the region labels
         plotRegionLabels(handles.graph_regionLabels,matFile.regions,matFile.regionLabels);
+    elseif isfield(matFile, {'data'})
+        % Need to implement data without labels
+        handles.data = matFile.data;
+        handles.refreshDictNeighbors = 1;
+        handles.dataHasLabels = 0;
+        handles.regions = [];
+        handles.regionLabels = [];
+        guidata(hObject,handles);
+        
+        updateStaticText(handles,'data',false);
+        updateStaticText(handles,'dictTemplate',false);
+        updateStaticText(handles,'regionLabel',false);
+        updatePlotNames(handles,'data',fileName);
+        
+        plotDataRegions(handles.graph_dictNeighbors, matFile.data);
+        cla(handles.graph_regionLabels);
+        
     else
-        errordlg('File has fields "data","regions", and "regionLabels."');
+        errordlg('File needs fields "data","regions", and "regionLabels."');
     end
 end
 
@@ -132,6 +155,7 @@ else
     data = inputHandles.data;
     regions = inputHandles.regions;
     regionLabels = inputHandles.regionLabels;
+    dataHasLabels = inputHandles.dataHasLabels;
     
     dataDict = inputHandles.dataDict;
     if ~assertDictFields(dataDict)
@@ -143,17 +167,27 @@ else
     refreshDictNeighbors = inputHandles.refreshDictNeighbors;
     
     % Plot the data
-    plotDataRegions(handles.graph_dictNeighbors,data,regions);
+    
+    if dataHasLabels
+        plotDataRegions(handles.graph_dictNeighbors,data,regions);
+    else
+        plotDataRegions(handles.graph_dictNeighbors,data,regions);
+    end
+    
     hold(handles.graph_dictNeighbors,'on');
     
-    if refreshDictNeighbors == 1
-        dataDict = updateDictIndices(data,dataDict,regions,regionLabels);
+    if refreshDictNeighbors
+        if dataHasLabels
+            dataDict = updateDictIndices(data,dataDict,regions,regionLabels);
+        else
+            dataDict = updateDictIndices(data,dataDict);
+        end
         refreshDictNeighbors = 0;
-        % update handles object
         handles.refreshDictNeighbors = refreshDictNeighbors;
         handles.dataDict = dataDict;
         guidata(hObject,handles);
     end
+    
     updateStaticText(handles,'data',true);
     updateStaticText(handles,'dictTemplate',true);
     
@@ -162,12 +196,13 @@ else
     flags(2) = get(handles.checkbox_displayCorrectNeighbors,'Value');
     flags(3) = get(handles.checkbox_displayIncorrectNeighbors,'Value');
     if selectedTemplateIndex == 1
-        plotDictNeighbors(handles.graph_dictNeighbors,flags,data,dataDict);
+        plotDictNeighbors(handles.graph_dictNeighbors,flags,...
+            data,dataDict,dataHasLabels);
     elseif selectedTemplateIndex > 1 && selectedTemplateIndex <= length(dataDict) + 1
         plotDictNeighbors(handles.graph_dictNeighbors,flags,data,...
-            dataDict(selectedTemplateIndex-1));
+            dataDict(selectedTemplateIndex-1), dataHasLabels);
     else
-       errordlg('Error with graph_dictNeighbors: selectedTemplateIndex.'); 
+        errordlg('Error with graph_dictNeighbors: selectedTemplateIndex.');
     end
     hold(handles.graph_dictNeighbors,'off');
 end
@@ -187,6 +222,11 @@ if ~all(isfield(inputHandles,{'data','regions','regionLabels','startLength',...
     errordlg('Need to input data and parameters before creating dictionary.');
     return;
 else
+    if ~handles.dataHasLabels
+        errordlg('Cannot learn from an unlabeled data set');
+        return;
+    end
+    
     data = inputHandles.data;
     regions = inputHandles.regions;
     regionLabels = inputHandles.regionLabels;
@@ -229,7 +269,7 @@ else
         updateStaticText(handles,'data',true);
         updateStaticText(handles,'dictTemplate',true);
         updatePlotNames(handles,'dict');
-
+        
         % Plot neighbors for all templates, defaults to 'All' in listbox
         plotDataRegions(handles.graph_dictNeighbors,data,regions);
         hold(handles.graph_dictNeighbors,'on');
@@ -245,7 +285,7 @@ else
         hold(handles.graph_dictNeighbors,'off');
         
         updateListboxTemplates(handles.listbox_dictTemplates,dataDict);
-   
+        
         % Plot dictionary templates
         plotDictTemplates(handles.graph_dictTemplates,dataDict);
     end
@@ -261,73 +301,83 @@ function button_importDict_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 fileName = uigetfile({'*.mat' ; '*.txt'});
 if fileName ~= 0
-   myFile = load(fileName);
-   
-   % If it is a matfile, it will have this variable
-   if isfield(myFile,'dataDict')
-       dataDict = myFile.dataDict;
-   else
-       try
-           dataDict = dictMatrix2dictStruct(myFile);
-       catch
-           errordlg('Error converting dictionary text file to mat file');
-           return;
-       end
-   end
-   
-   if assertDictFields(dataDict);
-       % Copy templates to queries subfield -- old code requires queries
-       % subfield...
-       for i=1:length(dataDict)
-          dataDict(i).query = dataDict(i).template; 
-       end
-      
-       % Clear highlighted neighbors if applicable
-       inputHandles = guidata(hObject);
-       if all(isfield(inputHandles,{'data','regions'}))
-           cla(handles.graph_dictNeighbors,'reset');
-           white = [1 1 1];
-           for i=1:size(inputHandles.regions,1)
-               area(handles.graph_dictNeighbors,...
-                   inputHandles.regions(i,:), [10 10], 'FaceColor', white, ...
-                   'LineStyle', ':');
-               hold(handles.graph_dictNeighbors,'on');
-           end
-           plot(handles.graph_dictNeighbors,handles.data); 
-       end
-       
-       % fill in indices if there is data else empty indices
-       inputHandles = guidata(hObject);
-       if all(isfield(inputHandles,{'data','regions','regionLabels'}))
-           data = inputHandles.data;
-           regions = inputHandles.regions;
-           regionLabels = inputHandles.regionLabels;
-           dataDict = updateDictIndices(data,dataDict,regions,regionLabels);
-           handles.refreshDictNeighbors = 0;
-       else
-           for i=1:length(dataDict)
-               dataDict(i).tpIndices = [];
-               dataDict(i).fpIndices = [];
-               dataDict(i).unorderTPIndices = [];
-               dataDict(i).unorderFPIndices = [];
-           end
-           handles.refreshDictNeighbors = 1;
-       end
-       updateStaticText(handles,'data',false);
-       updateStaticText(handles,'dictTemplate',false);
-       updatePlotNames(handles,'dict',fileName);
-       handles.dataDict = dataDict;
-       guidata(hObject,handles);
-       
-       % Load templates to listbox
-       updateListboxTemplates(handles.listbox_dictTemplates,dataDict);
-
-       % Plot all dictionary templates
-       plotDictTemplates(handles.graph_dictTemplates,dataDict);
-       hold(handles.graph_dictTemplates,'off');
-   else
-       errordlg('Dictionary needs fields "template","length", and "threshold."');
-   end
+    try
+        myFile = load(fileName);
+    catch
+        errordlg('Error converting dictionary text file to mat file');
+    end
+    
+    % If it is a matfile, it will have this variable
+    if isfield(myFile,'dataDict')
+        dataDict = myFile.dataDict;
+    else
+        try
+            dataDict = dictMatrix2dictStruct(myFile);
+        catch
+            errordlg('Error converting dictionary text file to mat file');
+            return;
+        end
+    end
+    
+    if assertDictFields(dataDict);
+        % Copy templates to queries subfield -- old code requires queries
+        % subfield...
+        for i=1:length(dataDict)
+            dataDict(i).query = dataDict(i).template;
+        end
+        
+        % Clear highlighted neighbors if applicable
+        inputHandles = guidata(hObject);
+        if all(isfield(inputHandles,{'data','regions'}))
+            cla(handles.graph_dictNeighbors,'reset');
+            white = [1 1 1];
+            for i=1:size(inputHandles.regions,1)
+                area(handles.graph_dictNeighbors,...
+                    inputHandles.regions(i,:), [10 10], 'FaceColor', white, ...
+                    'LineStyle', ':');
+                hold(handles.graph_dictNeighbors,'on');
+            end
+            plot(handles.graph_dictNeighbors,handles.data);
+        end
+        
+        % fill in indices if there is data else empty indices
+        inputHandles = guidata(hObject);
+        if all(isfield(inputHandles,{'data','regions','regionLabels'}))
+            if inputHandles.dataHasLabels
+                data = inputHandles.data;
+                regions = inputHandles.regions;
+                regionLabels = inputHandles.regionLabels;
+                dataDict = updateDictIndices(data,dataDict,regions,regionLabels);
+                handles.refreshDictNeighbors = 0;
+            else
+                data = inputHandles.data;
+                dataDict = updateDictIndices(data,dataDict)
+                handles.refreshDictNeighbors = 0;
+            end
+        else
+            for i=1:length(dataDict)
+                dataDict(i).tpIndices = [];
+                dataDict(i).fpIndices = [];
+                dataDict(i).unorderTPIndices = [];
+                dataDict(i).unorderFPIndices = [];
+            end
+            handles.refreshDictNeighbors = 1;
+        end
+        updateStaticText(handles,'data',false);
+        updateStaticText(handles,'dictTemplate',false);
+        updatePlotNames(handles,'dict',fileName);
+        handles.dataDict = dataDict;
+        guidata(hObject,handles);
+        
+        % Load templates to listbox
+        updateListboxTemplates(handles.listbox_dictTemplates,dataDict);
+        
+        % Plot all dictionary templates
+        plotDictTemplates(handles.graph_dictTemplates,dataDict);
+        hold(handles.graph_dictTemplates,'off');
+    else
+        errordlg('Dictionary needs fields "template","length", and "threshold."');
+    end
     
 end
 
@@ -351,9 +401,10 @@ if isfield(inputHandles,'dataDict')
     if exportAsMAT
         fileName = uiputfile('.mat','Save current dictionary.');
         if ischar(fileName)
-            dataDict = inputHandles.dataDict;    
+            dataDict = inputHandles.dataDict;
             dataDict = rmfield(dataDict,{'query','tpIndices','fpIndices',...
-                'unorderTPIndices','unorderFPIndices'});
+                'unorderTPIndices','unorderFPIndices', 'queryIndices', ...
+                'indices', 'unorderIndices'});
             
             updatePlotNames(handles,'dict',fileName);
             
@@ -366,6 +417,9 @@ if isfield(inputHandles,'dataDict')
         if ischar(fileName)
             dataDict = inputHandles.dataDict;
             dictMatrix = dictStruct2dictMatrix(dataDict);
+            
+            updatePlotNames(handles,'dict',fileName);
+            
             dlmwrite(fileName,dictMatrix,'precision',32);
         else
             errordlg('Invalid dictionary name.');
@@ -578,20 +632,22 @@ if all(isfield(inputHandles,{'dataDict','refreshDictNeighbors','selectedTemplate
     dataDict = inputHandles.dataDict;
     refreshDictNeighbors = inputHandles.refreshDictNeighbors;
     selectedTemplateIndex = inputHandles.selectedTemplateIndex;
-    
+    dataHasLabels = inputHandles.dataHasLabels;
     if assertDictFields(dataDict)
         precisionStringVal = 'Precision: --';
         numTPStringVal = 'True positives: --';
         numFPStringVal = 'False positives: --';
+        numNeighborsStringVal = 'Neighbors: --';
         if refreshDictNeighbors == 0
-            updateMetaDataText(handles,selectedTemplateIndex,dataDict);
+            updateMetaDataText(handles,selectedTemplateIndex,dataDict,dataHasLabels);
         else
             set(handles.staticText_precision,'String',precisionStringVal);
             set(handles.staticText_numTP,'String',numTPStringVal);
             set(handles.staticText_numFP,'String',numFPStringVal);
+            set(handles.staticText_numNeighbors,'String',numNeighborsStringVal);
         end
     else
-        errordlg('Error with displaying dictionary precision'); 
+        errordlg('Error with displaying dictionary precision');
         return;
     end
 end
@@ -686,28 +742,29 @@ elseif inputHandles.selectedTemplateIndex > 1 && all(isfield(inputHandles,{'data
         'refreshDictNeighbors','data','regions','regionLabels','displayNumNeighbors'}))
     dataDict = inputHandles.dataDict;
     data = inputHandles.data;
-    regions = inputHandles.regions;
-    regionLabels = inputHandles.regionLabels;
+    dataHasLabels = inputHandles.dataHasLabels;
+    
+    if dataHasLabels
+        regions = inputHandles.regions;
+        regionLabels = inputHandles.regionLabels;
+    end
+    
     selectedTemplateIndex = inputHandles.selectedTemplateIndex;
     displayNumNeighbors = inputHandles.displayNumNeighbors;
+    refreshDictNeighbors = handles.refreshDictNeighbors;
     
-    if handles.refreshDictNeighbors == 1
-        [~,~,~,~,sortedTPIndices,sortedFPIndices] = ...
-            getClassifiedNeighbors2(data,dataDict,regions,regionLabels);
-        for i=1:length(dataDict)
-            dataDict(i).tpIndices = sortedTPIndices{i};
-            dataDict(i).fpIndices = sortedFPIndices{i};
-            [unorderTPIndices,unorderFPIndices] = ...
-                getClassifiedNeighbors2(data,dataDict(i),regions,regionLabels);
-            dataDict(i).unorderTPIndices = unorderTPIndices;
-            dataDict(i).unorderFPIndices = unorderFPIndices;
-        end       
-        refreshDictNeighbors = 0;
-        handles.refreshDictNeighbors = refreshDictNeighbors;
-        handles.dataDict = dataDict;
-        guidata(hObject,handles);
-        updateStaticText(handles,'data',true);
-        updateStaticText(handles,'dictTemplate',true);
+    if refreshDictNeighbors
+       if dataHasLabels
+           dataDict = updateDictIndices(data,dataDict,regions,regionLabels);
+       else
+           dataDict = updateDictIndices(data,dataDict);
+       end
+       refreshDictNeighbors = 0;
+       handles.refreshDictNeighbors = refreshDictNeighbors;
+       handles.dataDict = dataDict;
+       guidata(hObject,handles);
+       updateStaticText(handles,'data',true);
+       updateStaticText(handles,'dictTemplate',true);
     end
     
     flags = [-1 -1 -1];
@@ -715,7 +772,7 @@ elseif inputHandles.selectedTemplateIndex > 1 && all(isfield(inputHandles,{'data
     flags(2) = get(handles.checkbox_displayCorrectNeighbors,'Value');
     flags(3) = get(handles.checkbox_displayIncorrectNeighbors,'Value');
     plotTemplateNeighbors(handles.graph_dictTemplates,flags,data,...
-        dataDict(selectedTemplateIndex-1),displayNumNeighbors);
+        dataDict(selectedTemplateIndex-1),displayNumNeighbors,dataHasLabels);
     hold(handles.graph_dictTemplates,'off');
 else
     errordlg('Error with graphing templates.');
@@ -738,28 +795,29 @@ function button_exportIndices_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Exports the first displayNumNeighbors indices depending on the checkboxes
-% and selected template to a file 
+% and selected template to a file
 inputHandles = guidata(hObject);
 if all(isfield(inputHandles,{'dataDict',...
         'refreshDictNeighbors','data','regions','regionLabels','displayNumNeighbors'}))
     dataDict = inputHandles.dataDict;
     data = inputHandles.data;
-    regions = inputHandles.regions;
-    regionLabels = inputHandles.regionLabels;
-    selectedTemplateIndex = inputHandles.selectedTemplateIndex;
-    displayNumNeighbors = inputHandles.displayNumNeighbors;
+    dataHasLabels = inputHandles.dataHasLabels;
     
-    if handles.refreshDictNeighbors == 1
-        [~,~,~,~,sortedTPIndices,sortedFPIndices] = ...
-            getClassifiedNeighbors2(data,dataDict,regions,regionLabels);
-        for i=1:length(dataDict)
-            dataDict(i).tpIndices = sortedTPIndices{i};
-            dataDict(i).fpIndices = sortedFPIndices{i};
-            [unorderTPIndices,unorderFPIndices] = ...
-                getClassifiedNeighbors2(data,dataDict(i),regions,regionLabels);
-            dataDict(i).unorderTPIndices = unorderTPIndices;
-            dataDict(i).unorderFPIndices = unorderFPIndices;
-        end       
+    if dataHasLabels
+        regions = inputHandles.regions;
+        regionLabels = inputHandles.regionLabels;
+    end
+    
+    selectedTemplateIndex = inputHandles.selectedTemplateIndex;
+    refreshDictNeighbors = handles.refreshDictNeighbors;
+    dataHasLabels = inputHandles.dataHasLabels;
+    
+    if refreshDictNeighbors
+        if dataHasLabels
+            dataDict = updateDictIndices(data,dataDict,regions,regionLabels);
+        else
+            dataDict = updateDictIndices(data,dataDict);
+        end
         refreshDictNeighbors = 0;
         handles.refreshDictNeighbors = refreshDictNeighbors;
         handles.dataDict = dataDict;
@@ -773,18 +831,16 @@ if all(isfield(inputHandles,{'dataDict',...
     flags(2) = get(handles.checkbox_displayCorrectNeighbors,'Value');
     flags(3) = get(handles.checkbox_displayIncorrectNeighbors,'Value');
     
-    indices = prepExportIndices(dataDict, selectedTemplateIndex, flags);
+    indices = prepExportIndices(dataDict, selectedTemplateIndex, flags, dataHasLabels);
     
     fileName = uiputfile('.txt','Save exported indices.');
     if ischar(fileName)
         dlmwrite(fileName,indices);
     else
         errordlg('Invalid file name.');
-    end
-    
-    
+    end    
 else
-    
+    errordlg('Error exporting indices');
 end
 
 

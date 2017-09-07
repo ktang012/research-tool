@@ -2,12 +2,10 @@ function [dictTPIndices,dictFPIndices,...
     predTPLengths,predFPLengths,...
     orgTPIndices,orgFPIndices] = ...
         getClassifiedNeighbors2(data,dataDict,regions,regionLabels);
-% gets indices of classified neighbors
-% and the corresponding lengths of those neighbors
-% using the data dictionary
-% 
+% Given a weakly labeled time series, returns true positive and false
+% positive indices as classified by the dictionary. The organized indices
+% correspond to the respective dictionary entries
 
-% Indices of neighbors in data
 dictTPIndices = [];
 dictFPIndices = [];
 
@@ -15,7 +13,6 @@ dictFPIndices = [];
 predTPLengths = [];
 predFPLengths = [];
 
-% organized into rows per entry
 orgTPIndices = {};
 orgFPIndices = {};
 
