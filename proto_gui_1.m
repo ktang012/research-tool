@@ -95,7 +95,11 @@ function button_importData_Callback(hObject, eventdata, handles)
 fileName = uigetfile('.mat');
 if fileName ~= 0
     matFile = load(fileName);
-    if isfield(matFile,{'data','regions','regionLabels'});
+    if all(isfield(matFile,{'data','regions','regionLabels'}))
+        if ~iscolumn(matFile.data)
+            matFile.data = matFile.data';
+        end
+        
         handles.data = matFile.data;
         handles.regions = matFile.regions;
         handles.regionLabels = matFile.regionLabels;
@@ -171,7 +175,7 @@ else
     if dataHasLabels
         plotDataRegions(handles.graph_dictNeighbors,data,regions);
     else
-        plotDataRegions(handles.graph_dictNeighbors,data,regions);
+        plotDataRegions(handles.graph_dictNeighbors,data);
     end
     
     hold(handles.graph_dictNeighbors,'on');
@@ -250,8 +254,13 @@ else
         else
             AV_type = '';
         end
+        
+        updateStaticText(handle, 'learning', true);
+        
         [dataDict, Fscore] = learnDataDictionary(data,regions,regionLabels,...
             targetLabel,startLength,stepLength,endLength,Fbeta,k,AV_type);
+        
+        updateStaticText(handle, 'learning', false);
         
         % Save unorder TP,FP for each entry
         for i=1:length(dataDict)
@@ -403,7 +412,7 @@ if isfield(inputHandles,'dataDict')
         if ischar(fileName)
             dataDict = inputHandles.dataDict;
             dataDict = rmfield(dataDict,{'query','tpIndices','fpIndices',...
-                'unorderTPIndices','unorderFPIndices', 'queryIndices', ...
+                'unorderTPIndices','unorderFPIndices', 'queryIndex', ...
                 'indices', 'unorderIndices'});
             
             updatePlotNames(handles,'dict',fileName);

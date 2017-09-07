@@ -14,7 +14,7 @@ if length(flags) == 3
                 if flags(3) == 1
                     indices = [indices; dataDict(i).fpIndices];
                 end
-                pl
+                
             else
                 indices = [indices; dataDict(i).indices];
             end

@@ -15,7 +15,6 @@ if exist('regions','var') && exist('regionLabels','var')
         dataDict(i).indices = [];
         dataDict(i).unorderIndices = [];
     end
-    newDataDict = dataDict;
 else
     [~,~,orgIndices] = getClassifiedNeighborsUnlabeled(data,dataDict);
     for i=1:length(dataDict)
@@ -29,5 +28,6 @@ else
        dataDict(i).unorderFPIndices = [];
     end
 end
+newDataDict = dataDict;
 end
 

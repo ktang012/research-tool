@@ -10,6 +10,9 @@ if ~isUpToDate
     if strcmp(textBox, 'regionLabel')
         set(handle.staticText_regionLabels,'String','Region Labels (no labels)');
     end
+    if strcmp(textBox, 'learning')
+        set(handle.staticText_learningInProgress,'String','');
+    end
 elseif isUpToDate
     if strcmp(textBox,'data')
         set(handle.staticText_data,'String','Data (Updated)');
@@ -17,8 +20,11 @@ elseif isUpToDate
     if strcmp(textBox,'dictTemplate')
         set(handle.staticText_dictTemplates,'String','Templates (Updated)');
     end
-    if
+    if strcmp(textBox,'regionLabel')
         set(handle.staticText_regionLabels,'String','Region Labels');
+    end
+    if strcmp(textBox, 'learning')
+        set(handle.staticText_learningInProgress,'String','Learning in Progress...');
     end
 else
     errordlg('Error with updateStaticText: isUpToDate value');

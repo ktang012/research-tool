@@ -9,6 +9,11 @@ elseif nargin == 8
     k = 10;
 end
 
+
+if ~iscolumn(data)
+    data = data';
+end
+
 mpData = [];
 concatIndices = [];
 for i=1:length(regionLabels)
@@ -22,8 +27,15 @@ for i=1:length(regionLabels)
     end
 end
 
-
-[matrixProfile, profileIndex, motifIndex] = interactiveMatrixProfileVer2(mpData,startLength);
+if length(mpData)/20 < startLength
+    disp('Warning: input length for matrix profile is too short! Using longest length possible');
+    temp_startLength = length(mpData)/20;
+else
+    temp_startLength = startLength;
+end
+    
+    
+[matrixProfile, profileIndex, motifIndex] = interactiveMatrixProfileVer2(mpData,temp_startLength);
 if exist('AV_type','var')
     [AV,cmp] = createAnnotationVec(matrixProfile,mpData,startLength,AV_type);
     matrixProfile = cmp;
@@ -95,7 +107,7 @@ while (currDictFscore - Fdiff) > prevDictFscore
     [dictIndices,currDictFscore,cumulativeTPCount,cumulativeFPCount,indLengths] = ...
         evalDataDict(data,dataDict,F_beta,regions,regionLabels,estTotalTPs);
     
-    currDictFscore
+    currDictFscore;
     
 end
 

@@ -16,6 +16,7 @@ if selectedTemplateIndex == 1
         precision = '--';
         numTP = '--';
         numFP = '--';
+        numNeighbors = 0;
         for i=1:length(dataDict)
             num = length(dataDict(i).indices);
             numNeighbors = numNeighbors + num;
@@ -44,7 +45,7 @@ elseif length(dataDict)+1 >= selectedTemplateIndex
         numNeighborsStringVal = 'Neighbors: --';
     else
         numNeighbors = length(dataDict(selectedTemplateIndex-1).indices);
-        numUnorderNeighbors = length(dataDict(sleectedTemplateIndex-1).unorderIndices);
+        numUnorderNeighbors = length(dataDict(selectedTemplateIndex-1).unorderIndices);
         
         precisionStringVal = 'Precision: --';
         numTPStringVal = 'True positives: --';

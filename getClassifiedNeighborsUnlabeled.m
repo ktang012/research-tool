@@ -12,7 +12,7 @@ for i=1:length(dataDict)
     dictDP = findNN(data,smooth(dataDict(i).template));
     
     if i > 1
-       dictDP = removeDPNeighbors(dictDP,dictTPIndices,predTPLengths); 
+       dictDP = removeDPNeighbors(dictDP,indices,indLengths); 
     end
     
     entryIndices = findRangeNNs(dictDP,dataDict(i).length,dataDict(i).threshold);
