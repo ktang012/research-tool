@@ -2,12 +2,14 @@ function [] = plotDataRegions(handle,data,regions)
 % Plots the data and regions
 L = get(gca,{'xlim','ylim'}); 
 cla(handle);
-maxVal = round(max(data));
+
 if exist('regions','var')
+    maxVal = ceil(max(data)) * 2;
+    minVal = ceil(min(data)) * 2;
     white = [1 1 1];
     for i=1:size(regions,1)
         area(handle,...
-            regions(i,:), [maxVal maxVal], 'FaceColor', white, ...
+            regions(i,:), [minVal maxVal; minVal maxVal], 'FaceColor', white, ...
             'LineStyle', ':');
         hold(handle,'on');
     end

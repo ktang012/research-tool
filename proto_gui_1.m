@@ -92,9 +92,59 @@ function button_importData_Callback(hObject, eventdata, handles)
 % hObject    handle to button_importData (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-fileName = uigetfile('.mat');
+fileName = uigetfile({'*.mat' ; '*.txt'});
 if fileName ~= 0
     matFile = load(fileName);
+    
+    % If imported file is NOT a MAT file (MAT files loaded to a variable is
+    % saved as a struct...)
+    if ~isstruct(matFile)
+        textfile = matFile;
+        matFile = struct();
+        
+        % The file is organized correctly 
+        % column(1) is data, column(2) is labels (optional)
+        if size(textfile,1) <= size(textfile,2)
+            textfile = textfile';
+        end
+        
+        % If there are labels
+        if size(textfile,2) == 2
+            if length(textfile(:,1)) == length(textfile(:,2))
+                matFile.labels = textfile(:,2);
+            end
+            matFile.data = textfile(:,1);
+        end
+    end
+    
+    % Convert to labels to regions and regionLabels
+    if all(isfield(matFile, {'data', 'labels'}))
+        data = matFile.data;
+        labels = matFile.labels;
+        
+        if length(data) ~= length(labels)
+           errordlg('Length of labels and data do not match.');
+           return;
+        end
+        
+        regions = [1 0];
+        regionLabels = [0];
+        regionInd = 1;
+        for i=2:length(labels)
+            if labels(i-1) ~= labels(i)
+                regions(regionInd,2) = i;
+                regions = [regions; i 0];
+                regionLabels = [regionLabels; labels(i)];
+                regionInd = regionInd + 1;
+            end
+        end
+        regions(end,2) = length(labels);
+        
+        matFile.regions = regions;
+        matFile.regionLabels = regionLabels;
+    end
+    
+    
     if all(isfield(matFile,{'data','regions','regionLabels'}))
         if ~iscolumn(matFile.data)
             matFile.data = matFile.data';
@@ -120,7 +170,10 @@ if fileName ~= 0
         % Plot the region labels
         plotRegionLabels(handles.graph_regionLabels,matFile.regions,matFile.regionLabels);
     elseif isfield(matFile, {'data'})
-        % Need to implement data without labels
+        if ~iscolumn(matFile.data)
+            matFile.data = matFile.data';
+        end
+        
         handles.data = matFile.data;
         handles.refreshDictNeighbors = 1;
         handles.dataHasLabels = 0;
@@ -255,12 +308,12 @@ else
             AV_type = '';
         end
         
-        updateStaticText(handle, 'learning', true);
+        updateStaticText(handles, 'learning', true);
         
         [dataDict, Fscore] = learnDataDictionary(data,regions,regionLabels,...
             targetLabel,startLength,stepLength,endLength,Fbeta,k,AV_type);
         
-        updateStaticText(handle, 'learning', false);
+        updateStaticText(handles, 'learning', false);
         
         % Save unorder TP,FP for each entry
         for i=1:length(dataDict)
@@ -369,6 +422,8 @@ if fileName ~= 0
                 dataDict(i).fpIndices = [];
                 dataDict(i).unorderTPIndices = [];
                 dataDict(i).unorderFPIndices = [];
+                dataDict(i).indices = [];
+                dataDict(i).unorderIndices = [];
             end
             handles.refreshDictNeighbors = 1;
         end
@@ -412,7 +467,7 @@ if isfield(inputHandles,'dataDict')
         if ischar(fileName)
             dataDict = inputHandles.dataDict;
             dataDict = rmfield(dataDict,{'query','tpIndices','fpIndices',...
-                'unorderTPIndices','unorderFPIndices', 'queryIndex', ...
+                'unorderTPIndices','unorderFPIndices', ...
                 'indices', 'unorderIndices'});
             
             updatePlotNames(handles,'dict',fileName);
