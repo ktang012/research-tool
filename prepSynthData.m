@@ -1,9 +1,9 @@
-numObjects = 75;
-noiseLengthStart = 250;
-noiseLengthEnd = 750;
+numObjects = 60;
+noiseLengthStart = 300;
+noiseLengthEnd = 600;
 
-objectLengthStart = 100;
-objectLengthEnd = 200;
+objectLengthStart = 150;
+objectLengthEnd = 250;
 
 indexSoFar = 1;
 
@@ -34,7 +34,7 @@ for i=1:numObjects
             end
         end
         object = object + randn(1,length(object)) * 0.25;
-    elseif rngesus >= 0.55
+    elseif rngesus >= 0.60
         % generate class B - flipped and smoothed sine wave
         x = 0:pi/randomLengthObject:2*pi;
         y = sin(x);
@@ -71,9 +71,12 @@ for i=1:length(synLabels)
     end
 end
 
+data = synData;
+regions = synBounds;
+regionLabels = synLabels;
 
 %plotNNs(synData,[],0,synBounds,synLabels,1)
-save('syntheticSet', 'synData','synBounds','synLabels');
+save('synSet2', 'data','regions','regionLabels');
 
 
 

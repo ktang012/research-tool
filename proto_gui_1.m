@@ -321,6 +321,8 @@ else
                 getClassifiedNeighbors2(data,dataDict(i),regions,regionLabels);
             dataDict(i).unorderTPIndices = unorderTPIndices;
             dataDict(i).unorderFPIndices = unorderFPIndices;
+            dataDict(i).indices = [];
+            dataDict(i).unorderIndices = [];
         end
         
         handles.dataDict = dataDict;
